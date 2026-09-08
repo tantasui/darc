@@ -1,0 +1,17 @@
+{
+  "name": "agentcard",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "fund": "node scripts/fund.ts",
+    "fund:check": "node scripts/fund.ts --check",
+    "write-config": "node scripts/write-config.ts",
+    "demo": "node scripts/demo.ts"
+  },
+  "dependencies": {
+    "viem": "^2.21.0"
+  }
+}

@@ -118,6 +118,31 @@ against are:
 `test_guideAddressesAreNotDeployedOnTestnet` pins this finding so no future doc-following change can
 silently reintroduce the mainnet addresses.
 
+### Whose registries are these?
+
+**Third-party reference deployments by the ERC-8004 project — not ours, and not anonymous
+community forks.** Provenance, verified on-chain:
+
+| Evidence | Value |
+|---|---|
+| Proxy owner (both registries) | `0x547289319C3e6aedB179C0b8e8aF0B5ACd062603` |
+| Matches the project's published owner | Yes — `VANITY_DEPLOYMENT_GUIDE.md` in `erc-8004/erc-8004-contracts` |
+| Deployed via | SAFE Singleton Factory `0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7` (same address on every chain) |
+| Implementation (Identity) | `0x7274e874ca62410a93bd8bf61c69d8045e399c02` |
+| Implementation (Reputation) | `0x16e0fa7f7c56b9a767e34b192b51f921be31da34` |
+| Cross-chain determinism | The same `0x8004A818…` vanity address holds registry code on Base Sepolia |
+
+The `0x8004…` vanity prefix is not decorative: CREATE2 through a chain-independent factory is what
+makes the registry live at the *same address on every chain*, which is what lets an agent's identity
+be resolved cross-chain without a per-chain address book.
+
+**Caveat we accept knowingly:** these proxies are **UUPS-upgradeable and owned by that single EOA**,
+so the registry's behaviour can change under us without our consent. We integrate anyway, because
+the alternative — deploying our own lookalike registries — trades a real, shared, canonical namespace
+for a private one that no third party would ever query, which would defeat the entire point of
+using ERC-8004. The upgrade key is a trust assumption of the standard's current rollout, not of
+AgentCard specifically, and it is one every ERC-8004 integrator on this chain shares.
+
 ---
 
 ## Who writes the reputation, and why it is not us
@@ -248,6 +273,14 @@ unrelated activity. Owner actions are rare, so prompt-per-transaction costs litt
 
 **Privy + Pimlico.** Dropped once Mera was chosen — see above.
 
+**Multi-token caps via a price oracle.** Deferred, not overlooked. A cap denominated in USD across
+arbitrary tokens requires a price feed, and a price feed is a new trust assumption, a new failure
+mode (stale or manipulated prices become a spending-limit bypass), and a new dependency to explain.
+Pinning one settlement token removes that assumption from the demo entirely. The natural Phase 2
+shape is a per-token cap table, or an oracle-priced cap with an explicit staleness bound — either
+way it is an additive change: `SpendGate` already commits `token` to the signed payload, so the
+enforcement point does not need re-architecting.
+
 ---
 
 ## Trust boundaries and caveats
@@ -275,6 +308,14 @@ submission is permissionless: the agent signs, any relayer submits, and the owne
 again.
 
 ---
+
+## Deployed addresses
+
+<!-- DEPLOYED:START -->
+_Not yet deployed._ Run `forge script script/Deploy.s.sol --broadcast` then
+`npm run write-config`, which fills this table and `config/addresses.ts` from the broadcast
+artifact. Addresses are never copied by hand.
+<!-- DEPLOYED:END -->
 
 ## Contracts
 
@@ -311,6 +352,8 @@ refuses to fork chain 10143.
 | `ReputationTrail.t.sol` (11) | Declines on-chain, no state left behind, merchant attestation, reader reports |
 | `DemoScript.t.sol` (3) | The 90-second demo as an executable test, plus fuzzed cap and signature invariants |
 | `MonadForkIntegration.t.sol` (6) | The whole flow against the **real** registries on chain 10143 |
+| `CrossLanguageConstants.t.sol` (3) | Pins the EIP-712 typehash, Merkle leaf encoding and decline selectors shared with TypeScript |
+| `DeployedSmoke.t.sol` (2) | Post-deploy: the demo against the **deployed** addresses (skips until they exist) |
 
 Unit tests run against faithful local replicas of the registries (reproducing the self-feedback
 guard, `getSummary` tag filtering, and `setAgentWallet` signature checks verbatim). The fork suite
@@ -327,10 +370,28 @@ mocks replicate the real registry rather than approximating it.
 
 ## Status
 
-**Done:** contracts, 58 passing tests, verified ERC-8004 integration against live testnet registries.
+**Done:** contracts, 61 passing tests, verified ERC-8004 integration against live testnet
+registries, and the full deploy toolchain — deploy script with registry pre-flight checks, address
+generator, funder/top-up, live demo runner, and a post-deploy smoke test.
 
-**Not yet built:** deployment + published addresses, owner console (Mera passkey onboarding, card
-issuance UI, `scripts/fund.ts`), agent/merchant demo surface, Verifier page.
+**Blocked on a funded key:** deployment itself. `forge script` simulates cleanly against live Monad
+Testnet (~1.17 MON estimated), but broadcasting needs a faucet-funded deployer key. See
+[DEPLOY.md](DEPLOY.md).
+
+**Not yet built:** owner console (Mera passkey onboarding, card issuance UI), agent demo panel,
+Verifier page.
 
 The demo script is already pinned by `test_theNinetySecondDemo`, so the UI has a contract-level
 specification to build against rather than the reverse.
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `contracts/` | Foundry project: sources, tests, deploy script |
+| `config/chain.ts` | Monad Testnet params and canonical ERC-8004 addresses |
+| `config/addresses.ts` | Generated at deploy time — never hand-edited |
+| `scripts/fund.ts` | Balance table and threshold top-up for owner + relayer |
+| `scripts/write-config.ts` | Broadcast artifact → `addresses.ts` + README table |
+| `scripts/demo.ts` | Live end-to-end run against the deployed contracts |
+| `DEPLOY.md` | Step-by-step deploy runbook |
