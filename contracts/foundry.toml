@@ -1,0 +1,22 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc = "0.8.28"
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+remappings = [
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+    "forge-std/=lib/forge-std/src/",
+]
+# Monad-family EVM features. Required for `vm.createSelectFork` against chain 10143:
+# without it Foundry 1.8 instantiates an "ethereum" EVM and refuses the fork with
+# "cannot create a `monad` fork with an EVM instantiated for `ethereum`".
+network = "monad"
+
+[fmt]
+line_length = 110
+
+[rpc_endpoints]
+monad_testnet = "${MONAD_TESTNET_RPC}"

@@ -1,0 +1,13 @@
+# Foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/dry-run/
+
+# Node / app (Phase 1 app layer, not yet built)
+node_modules/
+.next/
+.env
+.env.local
+
+# Editor / OS
+.DS_Store
