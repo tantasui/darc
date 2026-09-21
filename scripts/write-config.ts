@@ -10,7 +10,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { getAddress } from "viem";
-import { ERC8004 } from "../config/chain.ts";
+import { ERC8004, MONAD_TESTNET } from "../config/chain.ts";
 
 const chainId = process.argv.includes("--chain")
   ? process.argv[process.argv.indexOf("--chain") + 1]
@@ -93,7 +93,7 @@ export const DEPLOYMENT = {
 );
 
 // --- README table ------------------------------------------------------------
-const explorer = "https://testnet.monadexplorer.com/address";
+const explorer = `${MONAD_TESTNET.blockExplorers.default.url}/address`;
 const rows = [
   ...[...deployed.entries()].map(([n, a]) => `| \`${n}\` | [\`${a}\`](${explorer}/${a}) | this deployment |`),
   `| \`IdentityRegistry\` | [\`${ERC8004.identityRegistry}\`](${explorer}/${ERC8004.identityRegistry}) | ERC-8004 project |`,

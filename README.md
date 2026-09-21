@@ -312,10 +312,49 @@ again.
 ## Deployed addresses
 
 <!-- DEPLOYED:START -->
-_Not yet deployed._ Run `forge script script/Deploy.s.sol --broadcast` then
-`npm run write-config`, which fills this table and `config/addresses.ts` from the broadcast
-artifact. Addresses are never copied by hand.
+Monad Testnet (chain `10143`), deployed +058693-12-08T00:02:03.000Z from commit `f23ef7ebc22c683d53f5df47cda23ff534908de1`.
+
+| Contract | Address | Deployer |
+|---|---|---|
+| `MockUSD` | [`0x4BEE0Ecd3FB0f65A8a6982E2b3abB8baA14d731F`](https://testnet.monadvision.com/address/0x4BEE0Ecd3FB0f65A8a6982E2b3abB8baA14d731F) | this deployment |
+| `CardManager` | [`0xbfe4A4F6de7eC6e5153C3742541Ab9C9811f9FE5`](https://testnet.monadvision.com/address/0xbfe4A4F6de7eC6e5153C3742541Ab9C9811f9FE5) | this deployment |
+| `SpendGate` | [`0x540d97563C111b91f087C846ba19578f6BBff157`](https://testnet.monadvision.com/address/0x540d97563C111b91f087C846ba19578f6BBff157) | this deployment |
+| `SpendRouter` | [`0xBA379a9f4cd0D774e3a4E4388E2FefD86ACC2714`](https://testnet.monadvision.com/address/0xBA379a9f4cd0D774e3a4E4388E2FefD86ACC2714) | this deployment |
+| `MockMerchantA` | [`0xEb198C0092Ade3d3Cd22e33A950A1A39eaDfEF15`](https://testnet.monadvision.com/address/0xEb198C0092Ade3d3Cd22e33A950A1A39eaDfEF15) | this deployment |
+| `MockMerchantB` | [`0xbb6B254F08D1340c2F72F7E1725e2A243c38b645`](https://testnet.monadvision.com/address/0xbb6B254F08D1340c2F72F7E1725e2A243c38b645) | this deployment |
+| `ReputationReader` | [`0x1dBFfDDDDEa7fAE6dF89BF5291a07405B62ba571`](https://testnet.monadvision.com/address/0x1dBFfDDDDEa7fAE6dF89BF5291a07405B62ba571) | this deployment |
+| `IdentityRegistry` | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://testnet.monadvision.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) | ERC-8004 project |
+| `ReputationRegistry` | [`0x8004B663056A597Dffe9eCcC1965A193B7388713`](https://testnet.monadvision.com/address/0x8004B663056A597Dffe9eCcC1965A193B7388713) | ERC-8004 project |
+
+Regenerate with `npm run write-config` after any redeploy.
 <!-- DEPLOYED:END -->
+
+## Live demo run
+
+The 90-second demo, executed on Monad Testnet by `npm run demo` on 2026-09-22 against the
+deployment above. Every row is a real transaction; all contracts are Sourcify-verified
+(`exact_match`).
+
+| Step | Outcome | Transaction |
+|---|---|---|
+| Owner issues card: $50/day, merchants {A} | agent registered as ERC-8004 identity **#1915** | [`0x376d…a7d`](https://testnet.monadvision.com/tx/0x376d2e4d42c0cb49af3d3d52d3a74db14fb012ba19ed6cb33b7789aeaa9aae7d) |
+| Agent buys $20 at merchant A | **approved** | [`0x62a8…62c`](https://testnet.monadvision.com/tx/0x62a87e4eee052d7259d3afed295b38a4303e99ecb2447351c2879249012b262c) |
+| Agent tries $200 | **declined** `DailyCapExceeded` | [`0x60d8…4a5`](https://testnet.monadvision.com/tx/0x60d8a0aa36578a8ae375fe3de944201105c3d35aa3336cad4d536f767e4dc4a5) |
+| Agent tries merchant B | **declined** `MerchantNotAllowed` | [`0xb593…cd`](https://testnet.monadvision.com/tx/0xb5930a79cad0cb81f9c1ed62f5aab3e2b927040575bd7f556d536609892727cd) |
+| Owner revokes | card revoked | [`0x958e…28e`](https://testnet.monadvision.com/tx/0x958e80207be2a4a58852ba507e863143f503b9c9917bdd6d1913a588f712b28e) |
+| Agent tries again | **declined** `CardRevoked` | [`0x09ac…200`](https://testnet.monadvision.com/tx/0x09ac50dae7637317dbac437213309cf97bb7e9442320f65d41a3665e790a5200) |
+
+Independently confirmed with `cast`, not just the script's own output:
+
+- Identity #1915 on the canonical Identity Registry is owned by CardManager.
+- The canonical Reputation Registry lists **both merchants** as the clients who rated agent #1915,
+  so the trail was authored by counterparties, not by us.
+- The `DailyCapExceeded` transaction contains a `SpendDeclined` log from SpendRouter carrying
+  selector `0xcc70389d`: the refusal is on-chain even though the spend itself reverted.
+- The agent (`0x9e2C418F…4313`) ended with 0 MON and 0 mUSD: it signed four authorizations
+  and never sent a transaction.
+
+Final verifier view: **1 approved, 3 declined, revoked.**
 
 ## Contracts
 
@@ -370,13 +409,13 @@ mocks replicate the real registry rather than approximating it.
 
 ## Status
 
-**Done:** contracts, 61 passing tests, verified ERC-8004 integration against live testnet
+**Done:** contracts, 63 passing tests (including the post-deploy smoke test), verified ERC-8004 integration against live testnet
 registries, and the full deploy toolchain — deploy script with registry pre-flight checks, address
 generator, funder/top-up, live demo runner, and a post-deploy smoke test.
 
-**Blocked on a funded key:** deployment itself. `forge script` simulates cleanly against live Monad
-Testnet (~1.17 MON estimated), but broadcasting needs a faucet-funded deployer key. See
-[DEPLOY.md](DEPLOY.md).
+**Deployed:** live on Monad Testnet, all 7 contracts Sourcify-verified, post-deploy smoke test
+green against the deployed addresses, and the full demo executed live (see
+[Live demo run](#live-demo-run)).
 
 **Not yet built:** owner console (Mera passkey onboarding, card issuance UI), agent demo panel,
 Verifier page.

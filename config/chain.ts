@@ -5,7 +5,7 @@ export const MONAD_TESTNET = {
   nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
   rpcUrls: { default: { http: ["https://testnet-rpc.monad.xyz"] } },
   blockExplorers: {
-    default: { name: "Monad Explorer", url: "https://testnet.monadexplorer.com" },
+    default: { name: "MonadVision", url: "https://testnet.monadvision.com" },
   },
   testnet: true,
 } as const;
