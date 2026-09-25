@@ -88,6 +88,52 @@ Mera does **not** do on-chain P256/WebAuthn verification, and there is no smart 
 Because Mera supplies both the account and the auth, **Privy and Pimlico are not used**: Privy
 duplicates the authentication, and Pimlico's 4337 bundler/paymaster has nothing to bundle for an EOA.
 
+### Mera, as actually implemented (two corrections to the guide)
+
+Verified against `@category-labs/mera@0.2.0` and a real transaction, not just the docs.
+
+**1. Mera does not derive keys.** The guide describes PRF → BIP-39 → BIP-32, but the library's
+`createSecp256k1SigningSession({ privateKey })` takes a **private key that is already derived**. The
+whole derivation step is the application's job, and it lives in [`lib/mera.ts`](lib/mera.ts):
+
+```
+WebAuthn PRF output (32 bytes)
+  → entropyToMnemonic            @scure/bip39      (24 words, never shown)
+  → mnemonicToSeedSync
+  → HDKey.derive("m/44'/60'/0'/0/0")  @scure/bip32
+  → private key
+  → createSecp256k1SigningSession → toViemAccount   (viem LocalAccount, source: "mera")
+```
+
+Mera supplies the passkey ceremony, the signing session, and the viem adapter. Everything between
+PRF output and private key is ours.
+
+**2. `@scure/bip39` v2 requires the `.js` suffix** on wordlist subpaths
+(`@scure/bip39/wordlists/english.js`). The extensionless form most guides show throws
+`ERR_PACKAGE_PATH_NOT_EXPORTED`.
+
+**What is proven, and how.** `npm run mera:check:onchain` runs the full chain headlessly and
+[confirmed a real transaction on Monad Testnet](https://testnet.monadvision.com/tx/0xde1231598cd5c0e99f2ef8c5c857746510a143e1a4d0a709ab8abc465c972c83)
+sent by a PRF-derived account, in block 65700942:
+
+| Link | Result |
+|---|---|
+| 32-byte PRF → 24-word mnemonic → key | ok |
+| Address from `toViemAccount` == `getEvmAddress(session.publicKey)` | ok |
+| Same PRF reproduces the same address | ok — this is the whole recovery story |
+| EIP-191 and EIP-712 signing | ok — EIP-712 is what the agent flow needs |
+| Transaction accepted by Monad, `from` == derived address | ok |
+| Signing after `session.end()` | rejected with `SESSION_ENDED` |
+
+**What is still unproven:** the WebAuthn ceremony itself, which needs a real authenticator and
+cannot be tested headlessly. [`app/mera/page.tsx`](app/mera/page.tsx) reports each step separately so
+a failure at step 1 is identifiable as a provider problem rather than a bug in AgentCard.
+
+**A live warning about entropy.** The check derives from a fixed stand-in PRF value of 32 `0x07`
+bytes. That address — `0x29458C602E3DB4fC3b54EC2bbEE26Dbe64C7779f` — already held **4.8 MON across
+9 transactions** that we never sent: other people derived the same key from the same obvious test
+entropy. The PRF output *is* the wallet. A predictable one is a public wallet.
+
 ### Monad Testnet
 
 | Parameter | Value |
@@ -417,7 +463,11 @@ generator, funder/top-up, live demo runner, and a post-deploy smoke test.
 green against the deployed addresses, and the full demo executed live (see
 [Live demo run](#live-demo-run)).
 
-**Not yet built:** owner console (Mera passkey onboarding, card issuance UI), agent demo panel,
+**Mera de-risked:** derivation, signing and a real Monad transaction all confirmed from a
+PRF-derived account. Only the passkey ceremony itself remains, and it needs a physical device —
+run `npm run dev` and open `/mera` on a phone.
+
+**Not yet built:** owner console (card issuance UI on top of `lib/mera.ts`), agent demo panel,
 Verifier page.
 
 The demo script is already pinned by `test_theNinetySecondDemo`, so the UI has a contract-level
@@ -434,3 +484,29 @@ specification to build against rather than the reverse.
 | `scripts/write-config.ts` | Broadcast artifact → `addresses.ts` + README table |
 | `scripts/demo.ts` | Live end-to-end run against the deployed contracts |
 | `DEPLOY.md` | Step-by-step deploy runbook |
+| `app/` | Next.js 16 App Router: home plus the `/mera` passkey check |
+| `lib/mera.ts` | Passkey → EOA derivation and prompt-per-transaction sessions |
+| `scripts/mera-check.ts` | Headless proof of the chain, with `--onchain` |
+
+---
+
+## Running the app
+
+```bash
+npm install
+npm run dev            # then open http://localhost:3000/mera
+npm run mera:check      # headless: derivation + signing, no device needed
+npm run mera:check:onchain   # also sends a real transaction (needs FUNDER_PRIVATE_KEY)
+```
+
+WebAuthn requires a secure context, so use `localhost` or HTTPS. **Passkeys are bound to the domain
+that created them**, so a passkey made on `localhost` will not work on a deployed domain — create the
+demo passkey on whatever domain you will actually present from.
+
+If `next dev` fails with `OS file watch limit reached`, raise the inotify limit:
+
+```bash
+sudo sysctl fs.inotify.max_user_watches=524288
+```
+
+`next build && next start` needs no watches and is unaffected.

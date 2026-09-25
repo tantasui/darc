@@ -9,9 +9,26 @@
     "fund": "node scripts/fund.ts",
     "fund:check": "node scripts/fund.ts --check",
     "write-config": "node scripts/write-config.ts",
-    "demo": "node scripts/demo.ts"
+    "demo": "node scripts/demo.ts",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "mera:check": "node scripts/mera-check.ts",
+    "mera:check:onchain": "node scripts/mera-check.ts --onchain"
   },
   "dependencies": {
+    "@category-labs/mera": "^0.2.0",
+    "@scure/bip32": "^2.4.0",
+    "@scure/bip39": "^2.4.0",
+    "next": "^16.3.6",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^7.0.2"
   }
 }
