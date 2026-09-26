@@ -5,6 +5,7 @@ import {SpendRouter} from "../SpendRouter.sol";
 import {CardManager} from "../CardManager.sol";
 import {IReputationRegistry} from "../interfaces/IERC8004.sol";
 import {SpendAuth} from "../lib/AgentCardTypes.sol";
+import {DeclineReasons} from "../lib/DeclineReasons.sol";
 
 /// @title MockMerchant
 /// @notice The "shop" in the demo, and the AUTHOR of the ERC-8004 reputation trail.
@@ -21,7 +22,6 @@ contract MockMerchant {
     CardManager public immutable cardManager;
     IReputationRegistry public immutable reputation;
 
-    string internal constant TAG_DOMAIN = "payment";
     string internal constant TAG_APPROVED = "approved";
     string internal constant TAG_DECLINED = "declined";
 
@@ -46,11 +46,14 @@ contract MockMerchant {
         (ok, reasonSelector) = router.submit(auth, agentSig, merchantProof);
 
         uint256 agentId = cardManager.agentIdOfCard(auth.cardId);
+        // tag1 carries the OUTCOME REASON and tag2 the verdict. Both are stored by the
+        // registry, so a verifier reads the full trail -- refusals and their causes -- with
+        // one call, instead of scanning events the public RPC will not serve.
         reputation.giveFeedback(
             agentId,
             ok ? SCORE_APPROVED : SCORE_DECLINED,
             0,
-            TAG_DOMAIN,
+            ok ? DeclineReasons.APPROVED : DeclineReasons.tagFor(reasonSelector),
             ok ? TAG_APPROVED : TAG_DECLINED,
             "",
             "",

@@ -237,6 +237,23 @@ and `test_decline_leavesNoStateBehind`.
 
 ---
 
+## Why refusal reasons live in the attestation
+
+Public Monad RPCs cap `eth_getLogs` at a **100-block range** (verified on
+`testnet-rpc.monad.xyz` and `rpc.ankr.com/monad_testnet`; `drpc.org` was unreachable). Reading
+an agent's history since deployment would therefore need thousands of paginated requests, or a
+paid archive node — so a verifier built on events cannot actually read history.
+
+So the reason is written **into the ERC-8004 attestation** rather than left only in the
+`SpendDeclined` event: `tag1` carries the reason (`DailyCapExceeded`), `tag2` the verdict
+(`declined`). Both are stored by the registry, so the whole trail — refusals and their causes —
+is readable with one `eth_call` and no infrastructure. `SpendRouter` still emits
+`SpendDeclined`, which remains the cheaper real-time signal for anything already watching.
+
+Only `tag1`/`tag2` are stored; `endpoint` and `feedbackURI` are emitted but not kept, so they
+could not carry this. The mapping lives in
+[`DeclineReasons.sol`](contracts/src/lib/DeclineReasons.sol).
+
 ## Verification order
 
 `SpendGate.spend` checks, in order, each with a distinct custom error:
@@ -358,17 +375,17 @@ again.
 ## Deployed addresses
 
 <!-- DEPLOYED:START -->
-Monad Testnet (chain `10143`), deployed +058693-12-08T00:02:03.000Z from commit `f23ef7ebc22c683d53f5df47cda23ff534908de1`.
+Monad Testnet (chain `10143`), deployed +058707-07-04T23:56:16.000Z from commit `4c91e57385ae63d7977145fd64e7538eb8a88a91`.
 
 | Contract | Address | Deployer |
 |---|---|---|
-| `MockUSD` | [`0x4BEE0Ecd3FB0f65A8a6982E2b3abB8baA14d731F`](https://testnet.monadvision.com/address/0x4BEE0Ecd3FB0f65A8a6982E2b3abB8baA14d731F) | this deployment |
-| `CardManager` | [`0xbfe4A4F6de7eC6e5153C3742541Ab9C9811f9FE5`](https://testnet.monadvision.com/address/0xbfe4A4F6de7eC6e5153C3742541Ab9C9811f9FE5) | this deployment |
-| `SpendGate` | [`0x540d97563C111b91f087C846ba19578f6BBff157`](https://testnet.monadvision.com/address/0x540d97563C111b91f087C846ba19578f6BBff157) | this deployment |
-| `SpendRouter` | [`0xBA379a9f4cd0D774e3a4E4388E2FefD86ACC2714`](https://testnet.monadvision.com/address/0xBA379a9f4cd0D774e3a4E4388E2FefD86ACC2714) | this deployment |
-| `MockMerchantA` | [`0xEb198C0092Ade3d3Cd22e33A950A1A39eaDfEF15`](https://testnet.monadvision.com/address/0xEb198C0092Ade3d3Cd22e33A950A1A39eaDfEF15) | this deployment |
-| `MockMerchantB` | [`0xbb6B254F08D1340c2F72F7E1725e2A243c38b645`](https://testnet.monadvision.com/address/0xbb6B254F08D1340c2F72F7E1725e2A243c38b645) | this deployment |
-| `ReputationReader` | [`0x1dBFfDDDDEa7fAE6dF89BF5291a07405B62ba571`](https://testnet.monadvision.com/address/0x1dBFfDDDDEa7fAE6dF89BF5291a07405B62ba571) | this deployment |
+| `MockUSD` | [`0x82acf5f99EA05e5BD6a1886B5cBA63dE1Fc15395`](https://testnet.monadvision.com/address/0x82acf5f99EA05e5BD6a1886B5cBA63dE1Fc15395) | this deployment |
+| `CardManager` | [`0xA00d6901676EA65D3Fc0920046877eB8505329B0`](https://testnet.monadvision.com/address/0xA00d6901676EA65D3Fc0920046877eB8505329B0) | this deployment |
+| `SpendGate` | [`0x0dD6F49781Cca0D309F784209d3f2Dc5Ec1ac26e`](https://testnet.monadvision.com/address/0x0dD6F49781Cca0D309F784209d3f2Dc5Ec1ac26e) | this deployment |
+| `SpendRouter` | [`0x2d6C43F8D74501af8A386589137980F729a43cA1`](https://testnet.monadvision.com/address/0x2d6C43F8D74501af8A386589137980F729a43cA1) | this deployment |
+| `MockMerchantA` | [`0x10AC2e0abEB38e24dE19Fc5d2e2DcA5D9EEeF14E`](https://testnet.monadvision.com/address/0x10AC2e0abEB38e24dE19Fc5d2e2DcA5D9EEeF14E) | this deployment |
+| `MockMerchantB` | [`0xBf7B5E80045Ed9408B02297ccd707b1e61901A1A`](https://testnet.monadvision.com/address/0xBf7B5E80045Ed9408B02297ccd707b1e61901A1A) | this deployment |
+| `ReputationReader` | [`0x07885e31E2d1291583d6c4fed220C970e1AE0247`](https://testnet.monadvision.com/address/0x07885e31E2d1291583d6c4fed220C970e1AE0247) | this deployment |
 | `IdentityRegistry` | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://testnet.monadvision.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) | ERC-8004 project |
 | `ReputationRegistry` | [`0x8004B663056A597Dffe9eCcC1965A193B7388713`](https://testnet.monadvision.com/address/0x8004B663056A597Dffe9eCcC1965A193B7388713) | ERC-8004 project |
 
@@ -377,30 +394,31 @@ Regenerate with `npm run write-config` after any redeploy.
 
 ## Live demo run
 
-The 90-second demo, executed on Monad Testnet by `npm run demo` on 2026-09-22 against the
-deployment above. Every row is a real transaction; all contracts are Sourcify-verified
-(`exact_match`).
+The 90-second demo, executed on Monad Testnet by `npm run demo` against the deployment above.
+Every row is a real transaction; all 7 contracts are Sourcify-verified (`exact_match`).
 
 | Step | Outcome | Transaction |
 |---|---|---|
-| Owner issues card: $50/day, merchants {A} | agent registered as ERC-8004 identity **#1915** | [`0x376d…a7d`](https://testnet.monadvision.com/tx/0x376d2e4d42c0cb49af3d3d52d3a74db14fb012ba19ed6cb33b7789aeaa9aae7d) |
-| Agent buys $20 at merchant A | **approved** | [`0x62a8…62c`](https://testnet.monadvision.com/tx/0x62a87e4eee052d7259d3afed295b38a4303e99ecb2447351c2879249012b262c) |
-| Agent tries $200 | **declined** `DailyCapExceeded` | [`0x60d8…4a5`](https://testnet.monadvision.com/tx/0x60d8a0aa36578a8ae375fe3de944201105c3d35aa3336cad4d536f767e4dc4a5) |
-| Agent tries merchant B | **declined** `MerchantNotAllowed` | [`0xb593…cd`](https://testnet.monadvision.com/tx/0xb5930a79cad0cb81f9c1ed62f5aab3e2b927040575bd7f556d536609892727cd) |
-| Owner revokes | card revoked | [`0x958e…28e`](https://testnet.monadvision.com/tx/0x958e80207be2a4a58852ba507e863143f503b9c9917bdd6d1913a588f712b28e) |
-| Agent tries again | **declined** `CardRevoked` | [`0x09ac…200`](https://testnet.monadvision.com/tx/0x09ac50dae7637317dbac437213309cf97bb7e9442320f65d41a3665e790a5200) |
+| Owner issues card: $50/day, merchants {A} | agent registered as ERC-8004 identity **#1935** | [`0x…`](https://testnet.monadvision.com/tx/0x28d21122dfa05248518251db1a0cb0b62ff445ea38dc418f8caf18497ef1f623) |
+| Agent buys $20 at merchant A | **approved** | [`0x28d2…623`](https://testnet.monadvision.com/tx/0x28d21122dfa05248518251db1a0cb0b62ff445ea38dc418f8caf18497ef1f623) |
+| Agent tries $200 | **declined** `DailyCapExceeded` | [`0xa65b…f4b`](https://testnet.monadvision.com/tx/0xa65bf8ef173a68159f2e43e77fc964bd9560bc77f7a2ea0b7c0f6203e0eaef4b) |
+| Agent tries merchant B | **declined** `MerchantNotAllowed` | [`0x5a2d…a68`](https://testnet.monadvision.com/tx/0x5a2d8237d12a67f9b971d0db22b8d78ff41644c5e4b58a7a88ff8d1d8b55ba68) |
+| Owner revokes, agent retries | **declined** `CardRevoked` | [`0xec4e…271`](https://testnet.monadvision.com/tx/0xec4e3d77a176bda0a26f61e9f6778c4daec6b63614546cca99ca4e216ad88271) |
 
-Independently confirmed with `cast`, not just the script's own output:
+Agent `0x448c24e7e9aB4400FeA8f5D829db49f9f91732c5` — verify it yourself at `/verify`. Read back
+from the canonical registry with nothing but `eth_call`:
 
-- Identity #1915 on the canonical Identity Registry is owned by CardManager.
-- The canonical Reputation Registry lists **both merchants** as the clients who rated agent #1915,
-  so the trail was authored by counterparties, not by us.
-- The `DailyCapExceeded` transaction contains a `SpendDeclined` log from SpendRouter carrying
-  selector `0xcc70389d`: the refusal is on-chain even though the spend itself reverted.
-- The agent (`0x9e2C418F…4313`) ended with 0 MON and 0 mUSD: it signed four authorizations
-  and never sent a transaction.
+```
+verdict      REVOKED | approved 1 | declined 3 | agentId 1935
+identity     held by CardManager
+attestations approved  approved            by 0x10AC2e0abE…  (merchant A)
+             declined  DailyCapExceeded    by 0x10AC2e0abE…
+             declined  CardRevoked         by 0x10AC2e0abE…
+             declined  MerchantNotAllowed  by 0xBf7B5E8004…  (merchant B)
+cross-check  consistent
+```
 
-Final verifier view: **1 approved, 3 declined, revoked.**
+The agent ended with 0 MON and 0 mUSD: it signed four authorizations and never sent a transaction.
 
 ## Contracts
 
@@ -434,7 +452,7 @@ refuses to fork chain 10143.
 |---|---|
 | `SpendGate.t.sol` (23) | Full-chain approval, every decline reason, replay, deadline, Merkle proofs, cap boundary and rollover, revocation |
 | `CardManager.t.sol` (15) | Issuance, access control, terminal revocation, policy versioning, `bindAgentWallet` |
-| `ReputationTrail.t.sol` (11) | Declines on-chain, no state left behind, merchant attestation, reader reports |
+| `ReputationTrail.t.sol` (12) | Declines on-chain, no state left behind, merchant attestation, reader reports |
 | `DemoScript.t.sol` (3) | The 90-second demo as an executable test, plus fuzzed cap and signature invariants |
 | `MonadForkIntegration.t.sol` (6) | The whole flow against the **real** registries on chain 10143 |
 | `CrossLanguageConstants.t.sol` (3) | Pins the EIP-712 typehash, Merkle leaf encoding and decline selectors shared with TypeScript |
@@ -455,7 +473,7 @@ mocks replicate the real registry rather than approximating it.
 
 ## Status
 
-**Done:** contracts, 63 passing tests (including the post-deploy smoke test), verified ERC-8004 integration against live testnet
+**Done:** contracts, 64 passing tests (including the post-deploy smoke test), verified ERC-8004 integration against live testnet
 registries, and the full deploy toolchain — deploy script with registry pre-flight checks, address
 generator, funder/top-up, live demo runner, and a post-deploy smoke test.
 
@@ -467,8 +485,11 @@ green against the deployed addresses, and the full demo executed live (see
 PRF-derived account. Only the passkey ceremony itself remains, and it needs a physical device —
 run `npm run dev` and open `/mera` on a phone.
 
-**Not yet built:** owner console (card issuance UI on top of `lib/mera.ts`), agent demo panel,
-Verifier page.
+**Verifier page built:** `/verify` resolves any agent address to a trust verdict, the card policy,
+its ERC-8004 identity, the merchant-written attestations with refusal reasons, and a cross-check
+between our aggregate and the raw registry. Pure `eth_call` — no indexer or archive node.
+
+**Not yet built:** owner console (card issuance UI on top of `lib/mera.ts`), agent demo panel.
 
 The demo script is already pinned by `test_theNinetySecondDemo`, so the UI has a contract-level
 specification to build against rather than the reverse.
@@ -484,7 +505,8 @@ specification to build against rather than the reverse.
 | `scripts/write-config.ts` | Broadcast artifact → `addresses.ts` + README table |
 | `scripts/demo.ts` | Live end-to-end run against the deployed contracts |
 | `DEPLOY.md` | Step-by-step deploy runbook |
-| `app/` | Next.js 16 App Router: home plus the `/mera` passkey check |
+| `app/` | Next.js 16 App Router: home, `/verify`, and the `/mera` passkey check |
+| `lib/contracts.ts` | ABIs, deployed addresses, decline-reason decoding |
 | `lib/mera.ts` | Passkey → EOA derivation and prompt-per-transaction sessions |
 | `scripts/mera-check.ts` | Headless proof of the chain, with `--onchain` |
 
@@ -494,7 +516,7 @@ specification to build against rather than the reverse.
 
 ```bash
 npm install
-npm run dev            # then open http://localhost:3000/mera
+npm run dev            # /verify works with no device; /mera needs a passkey
 npm run mera:check      # headless: derivation + signing, no device needed
 npm run mera:check:onchain   # also sends a real transaction (needs FUNDER_PRIVATE_KEY)
 ```

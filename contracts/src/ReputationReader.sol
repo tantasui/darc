@@ -15,7 +15,8 @@ contract ReputationReader {
     IReputationRegistry public immutable reputation;
     IIdentityRegistry public immutable identityRegistry;
 
-    string internal constant TAG_DOMAIN = "payment";
+    /// @dev tag1 now holds the reason, so counts filter on tag2 only (empty tag1 = wildcard).
+    string internal constant TAG_ANY = "";
     string internal constant TAG_APPROVED = "approved";
     string internal constant TAG_DECLINED = "declined";
 
@@ -57,8 +58,8 @@ contract ReputationReader {
         // `getSummary` reverts on an empty client list, so a never-rated agent short-circuits.
         if (clients.length == 0) return report;
 
-        (report.approvedCount,,) = reputation.getSummary(report.agentId, clients, TAG_DOMAIN, TAG_APPROVED);
-        (report.declinedCount,,) = reputation.getSummary(report.agentId, clients, TAG_DOMAIN, TAG_DECLINED);
+        (report.approvedCount,,) = reputation.getSummary(report.agentId, clients, TAG_ANY, TAG_APPROVED);
+        (report.declinedCount,,) = reputation.getSummary(report.agentId, clients, TAG_ANY, TAG_DECLINED);
     }
 
     /// @notice Convenience: is this agent currently safe to transact with?

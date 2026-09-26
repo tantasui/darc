@@ -78,7 +78,7 @@ contract ReputationTrailTest is AgentCardBase {
     function test_issuerCannotRateItsOwnAgent() public {
         vm.prank(address(cardManager));
         vm.expectRevert(bytes("Self-feedback not allowed"));
-        reputation.giveFeedback(agentId, 100, 0, "payment", "approved", "", "", bytes32(0));
+        reputation.giveFeedback(agentId, 100, 0, "approved", "approved", "", "", bytes32(0));
     }
 
     function test_merchantAttestsApprovalsAndDeclines() public {
@@ -89,10 +89,31 @@ contract ReputationTrailTest is AgentCardBase {
         address[] memory clients = reputation.getClients(agentId);
         assertEq(clients.length, 2, "both merchants recorded as clients");
 
-        (uint64 approved,,) = reputation.getSummary(agentId, clients, "payment", "approved");
-        (uint64 declined,,) = reputation.getSummary(agentId, clients, "payment", "declined");
+        (uint64 approved,,) = reputation.getSummary(agentId, clients, "", "approved");
+        (uint64 declined,,) = reputation.getSummary(agentId, clients, "", "declined");
         assertEq(approved, 1);
         assertEq(declined, 2);
+    }
+
+    /// @dev The reason must be READABLE BY eth_call, not only from events: public Monad RPCs
+    ///      cap eth_getLogs at 100 blocks, so a verifier cannot scan history for it.
+    function test_declineReasonIsStoredInTheAttestation() public {
+        _charge(merchantA, _auth(address(merchantA), 200e6, 1), _noProof());
+        _charge(merchantB, _auth(address(merchantB), 5e6, 2), _noProof());
+
+        address[] memory a = new address[](1);
+        a[0] = address(merchantA);
+        (uint64 capCount,,) = reputation.getSummary(agentId, a, "DailyCapExceeded", "declined");
+        assertEq(capCount, 1, "over-cap refusal is tagged with its reason");
+
+        address[] memory b = new address[](1);
+        b[0] = address(merchantB);
+        (uint64 scopeCount,,) = reputation.getSummary(agentId, b, "MerchantNotAllowed", "declined");
+        assertEq(scopeCount, 1, "out-of-scope refusal is tagged with its reason");
+
+        // Reasons are distinct, so a verifier can tell the two refusals apart.
+        (uint64 wrongTag,,) = reputation.getSummary(agentId, a, "MerchantNotAllowed", "declined");
+        assertEq(wrongTag, 0, "reasons must not be interchangeable");
     }
 
     // --- third-party queryability ------------------------------------------------

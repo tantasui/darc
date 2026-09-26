@@ -126,7 +126,7 @@ contract MonadForkIntegrationTest is Test {
         vm.prank(address(cardManager));
         vm.expectRevert(bytes("Self-feedback not allowed"));
         IReputationRegistry(REPUTATION_REGISTRY)
-            .giveFeedback(agentId, 100, 0, "payment", "approved", "", "", bytes32(0));
+            .giveFeedback(agentId, 100, 0, "approved", "approved", "", "", bytes32(0));
 
         // Merchant, the counterparty, is not.
         SpendAuth memory auth = _auth(20e6, 1);
@@ -138,7 +138,7 @@ contract MonadForkIntegrationTest is Test {
         assertEq(clients[0], address(merchantA), "the merchant is the feedback author");
 
         (uint64 approved,,) =
-            IReputationRegistry(REPUTATION_REGISTRY).getSummary(agentId, clients, "payment", "approved");
+            IReputationRegistry(REPUTATION_REGISTRY).getSummary(agentId, clients, "", "approved");
         assertEq(approved, 1, "approval recorded on the canonical registry");
     }
 

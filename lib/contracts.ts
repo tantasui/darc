@@ -1,0 +1,66 @@
+/** Contract bindings for the web app. Addresses come from the generated config. */
+import { parseAbi, keccak256, toBytes, type Hex } from "viem";
+import { ADDRESSES } from "@/config/addresses";
+
+/** First block of the deployment, so log queries do not scan the whole chain. */
+export const DEPLOY_BLOCK = 65969571n;
+
+export const reputationReaderAbi = parseAbi([
+  "struct AgentReport { bool found; uint256 agentId; bytes32 cardId; address owner; uint64 approvedCount; uint64 declinedCount; bool revoked; bool expired; uint64 activeSince; uint64 clientCount; }",
+  "function reportForAgentKey(address agentKey) view returns (AgentReport)",
+  "function isTrusted(address agentKey) view returns (bool)",
+]);
+
+export const cardManagerAbi = parseAbi([
+  "struct Card { address agentKey; address owner; uint256 dailyCap; bytes32 merchantRoot; uint64 validUntil; uint64 issuedAt; bool revoked; uint64 policyVersion; }",
+  "function getCard(bytes32 cardId) view returns (Card)",
+  "function agentIdOfCard(bytes32) view returns (uint256)",
+  "function cardIdOfAgentKey(address) view returns (bytes32)",
+]);
+
+export const spendGateAbi = parseAbi([
+  "function remainingToday(bytes32 cardId) view returns (uint256)",
+  "event SpendApproved(bytes32 indexed cardId, address indexed merchant, uint256 amount, uint256 nonce, uint256 spentToday)",
+]);
+
+export const spendRouterAbi = parseAbi([
+  "event SpendDeclined(bytes32 indexed cardId, address indexed merchant, uint256 amount, uint256 nonce, bytes4 reasonSelector)",
+]);
+
+/** Canonical ERC-8004 registries — the same contracts any third party would query. */
+export const identityRegistryAbi = parseAbi([
+  "function ownerOf(uint256 tokenId) view returns (address)",
+  "function getAgentWallet(uint256 agentId) view returns (address)",
+  "function tokenURI(uint256 tokenId) view returns (string)",
+]);
+
+export const reputationRegistryAbi = parseAbi([
+  "function getClients(uint256 agentId) view returns (address[])",
+  "function readAllFeedback(uint256 agentId, address[] clientAddresses, string tag1, string tag2, bool includeRevoked) view returns (address[] clients, uint64[] feedbackIndexes, int128[] values, uint8[] valueDecimals, string[] tag1s, string[] tag2s, bool[] revokedStatuses)",
+]);
+
+/**
+ * SpendGate's custom errors, by selector. SpendRouter records the selector on-chain, so
+ * this is how a refusal becomes readable. Pinned in Solidity by
+ * contracts/test/CrossLanguageConstants.t.sol, so drift breaks CI rather than this page.
+ */
+export const DECLINE_REASONS: Record<string, string> = Object.fromEntries(
+  [
+    "CardNotFound",
+    "CardRevoked",
+    "CardExpired",
+    "DeadlineExpired",
+    "TokenNotAllowed",
+    "PolicyVersionStale",
+    "BadAgentSignature",
+    "NonceUsed",
+    "MerchantNotAllowed",
+    "DailyCapExceeded",
+  ].map((name) => [keccak256(toBytes(`${name}()`)).slice(0, 10), name]),
+);
+
+export function describeReason(selector: Hex): string {
+  return DECLINE_REASONS[selector.toLowerCase()] ?? `unknown (${selector})`;
+}
+
+export { ADDRESSES };
