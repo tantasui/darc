@@ -481,9 +481,12 @@ generator, funder/top-up, live demo runner, and a post-deploy smoke test.
 green against the deployed addresses, and the full demo executed live (see
 [Live demo run](#live-demo-run)).
 
-**Mera de-risked:** derivation, signing and a real Monad transaction all confirmed from a
-PRF-derived account. Only the passkey ceremony itself remains, and it needs a physical device —
-run `npm run dev` and open `/mera` on a phone.
+**Mera de-risked, ceremony included:** derivation, signing and a real Monad transaction confirmed
+from a PRF-derived account, and `npm run test:passkey` now drives the real `/mera` page through an
+actual WebAuthn ceremony in headless Chrome using a virtual authenticator with PRF enabled. The same
+passkey reproduces the same address and sends a confirmed transaction. The only thing left that
+automation cannot settle is whether a *particular real provider* supports PRF — see
+[TESTING.md](TESTING.md) layer 9.
 
 **Verifier page built:** `/verify` resolves any agent address to a trust verdict, the card policy,
 its ERC-8004 identity, the merchant-written attestations with refusal reasons, and a cross-check
@@ -509,8 +512,21 @@ specification to build against rather than the reverse.
 | `lib/contracts.ts` | ABIs, deployed addresses, decline-reason decoding |
 | `lib/mera.ts` | Passkey → EOA derivation and prompt-per-transaction sessions |
 | `scripts/mera-check.ts` | Headless proof of the chain, with `--onchain` |
+| `scripts/test-passkey.ts` | End-to-end passkey test via Chrome's virtual authenticator |
+| `TESTING.md` | What is tested, how, and the one manual step |
 
 ---
+
+## Testing
+
+See [TESTING.md](TESTING.md). Short version:
+
+```bash
+cd contracts && forge test              # 62 passing, 6 of them against live registries
+cd .. && npm run mera:check:onchain     # passkey derivation + a real transaction
+npm run build && npm run test:passkey   # the WebAuthn ceremony, headless
+npm run demo                            # the whole demo, live on testnet
+```
 
 ## Running the app
 
