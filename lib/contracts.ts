@@ -16,6 +16,26 @@ export const cardManagerAbi = parseAbi([
   "function getCard(bytes32 cardId) view returns (Card)",
   "function agentIdOfCard(bytes32) view returns (uint256)",
   "function cardIdOfAgentKey(address) view returns (bytes32)",
+  "function cardIdFor(address owner, address agentKey) pure returns (bytes32)",
+  "function issueCard(address agentKey, uint256 dailyCap, bytes32 merchantRoot, uint64 validUntil, string agentURI) returns (bytes32, uint256)",
+  "function revoke(bytes32 cardId)",
+]);
+
+/** The only thing an agent ever signs. Must match SPEND_AUTH_TYPEHASH in Solidity. */
+export const SPEND_AUTH_TYPES = {
+  SpendAuth: [
+    { name: "cardId", type: "bytes32" },
+    { name: "merchant", type: "address" },
+    { name: "token", type: "address" },
+    { name: "amount", type: "uint256" },
+    { name: "nonce", type: "uint256" },
+    { name: "deadline", type: "uint256" },
+    { name: "policyVersion", type: "uint64" },
+  ],
+} as const;
+
+export const merchantAbi = parseAbi([
+  "function charge((bytes32 cardId,address merchant,address token,uint256 amount,uint256 nonce,uint256 deadline,uint64 policyVersion) auth, bytes agentSig, bytes32[] merchantProof) returns (bool, bytes4)",
 ]);
 
 export const spendGateAbi = parseAbi([

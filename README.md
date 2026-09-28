@@ -492,7 +492,12 @@ automation cannot settle is whether a *particular real provider* supports PRF �
 its ERC-8004 identity, the merchant-written attestations with refusal reasons, and a cross-check
 between our aggregate and the raw registry. Pure `eth_call` — no indexer or archive node.
 
-**Not yet built:** owner console (card issuance UI on top of `lib/mera.ts`), agent demo panel.
+**Agent demo panel built (not yet runtime-verified):** `/demo` runs the whole demo as buttons —
+issue, $20 approved, $200 over cap, merchant B out of scope, revoke. The agent key lives in the
+browser and only signs; `/api/relay` submits and pays gas. Builds and typechecks; clicking through
+it against the live deployment is still pending.
+
+**Not yet built:** owner console (card issuance UI on top of `lib/mera.ts`).
 
 The demo script is already pinned by `test_theNinetySecondDemo`, so the UI has a contract-level
 specification to build against rather than the reverse.
@@ -508,7 +513,9 @@ specification to build against rather than the reverse.
 | `scripts/write-config.ts` | Broadcast artifact → `addresses.ts` + README table |
 | `scripts/demo.ts` | Live end-to-end run against the deployed contracts |
 | `DEPLOY.md` | Step-by-step deploy runbook |
-| `app/` | Next.js 16 App Router: home, `/verify`, and the `/mera` passkey check |
+| `app/` | Next.js 16 App Router: home, `/verify`, `/demo`, and the `/mera` passkey check |
+| `app/api/` | Demo-only routes: owner issue/revoke, and the gas-paying relayer |
+| `lib/server.ts` | Server-side demo wallets, and why they are demo-only |
 | `lib/contracts.ts` | ABIs, deployed addresses, decline-reason decoding |
 | `lib/mera.ts` | Passkey → EOA derivation and prompt-per-transaction sessions |
 | `scripts/mera-check.ts` | Headless proof of the chain, with `--onchain` |
