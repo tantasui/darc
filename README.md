@@ -492,12 +492,19 @@ automation cannot settle is whether a *particular real provider* supports PRF �
 its ERC-8004 identity, the merchant-written attestations with refusal reasons, and a cross-check
 between our aggregate and the raw registry. Pure `eth_call` — no indexer or archive node.
 
-**Agent demo panel built (not yet runtime-verified):** `/demo` runs the whole demo as buttons —
-issue, $20 approved, $200 over cap, merchant B out of scope, revoke. The agent key lives in the
-browser and only signs; `/api/relay` submits and pays gas. Builds and typechecks; clicking through
-it against the live deployment is still pending.
+**All four surfaces built (UI not yet runtime-verified):**
 
-**Not yet built:** owner console (card issuance UI on top of `lib/mera.ts`).
+| Route | What it does |
+|---|---|
+| `/console` | Passkey sign-in, issue a card (limit + merchants), card visual, instant revoke |
+| `/demo` | The agent: in-policy buy, over-cap refusal, out-of-scope refusal |
+| `/verify` | Any agent address → trust verdict from the canonical registry |
+| `/mera` | The passkey → EOA → transaction check, step by step |
+
+Every owner action in `/console` runs its own passkey ceremony and ends the session in a
+`finally` block, so the derived key never outlives the action it authorized. The contracts,
+scripts and passkey ceremony are all tested; what has not been exercised yet is clicking through
+the pages against the live deployment.
 
 The demo script is already pinned by `test_theNinetySecondDemo`, so the UI has a contract-level
 specification to build against rather than the reverse.
@@ -514,7 +521,8 @@ specification to build against rather than the reverse.
 | `scripts/demo.ts` | Live end-to-end run against the deployed contracts |
 | `DEPLOY.md` | Step-by-step deploy runbook |
 | `app/` | Next.js 16 App Router: home, `/verify`, `/demo`, and the `/mera` passkey check |
-| `app/api/` | Demo-only routes: owner issue/revoke, and the gas-paying relayer |
+| `app/api/` | Demo-only routes: owner issue/revoke, onboarding top-up, gas-paying relayer |
+| `lib/merkle.ts` | Merchant scoping, matching the Solidity leaf encoding |
 | `lib/server.ts` | Server-side demo wallets, and why they are demo-only |
 | `lib/contracts.ts` | ABIs, deployed addresses, decline-reason decoding |
 | `lib/mera.ts` | Passkey → EOA derivation and prompt-per-transaction sessions |

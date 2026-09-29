@@ -38,6 +38,13 @@ export const merchantAbi = parseAbi([
   "function charge((bytes32 cardId,address merchant,address token,uint256 amount,uint256 nonce,uint256 deadline,uint64 policyVersion) auth, bytes agentSig, bytes32[] merchantProof) returns (bool, bytes4)",
 ]);
 
+export const mockUsdAbi = parseAbi([
+  "function faucet()",
+  "function approve(address spender, uint256 amount) returns (bool)",
+  "function balanceOf(address) view returns (uint256)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+]);
+
 export const spendGateAbi = parseAbi([
   "function remainingToday(bytes32 cardId) view returns (uint256)",
   "event SpendApproved(bytes32 indexed cardId, address indexed merchant, uint256 amount, uint256 nonce, uint256 spentToday)",
