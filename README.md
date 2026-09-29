@@ -492,7 +492,7 @@ automation cannot settle is whether a *particular real provider* supports PRF �
 its ERC-8004 identity, the merchant-written attestations with refusal reasons, and a cross-check
 between our aggregate and the raw registry. Pure `eth_call` — no indexer or archive node.
 
-**All four surfaces built (UI not yet runtime-verified):**
+**All four surfaces built and driven end-to-end in a real browser:**
 
 | Route | What it does |
 |---|---|
@@ -502,9 +502,23 @@ between our aggregate and the raw registry. Pure `eth_call` — no indexer or ar
 | `/mera` | The passkey → EOA → transaction check, step by step |
 
 Every owner action in `/console` runs its own passkey ceremony and ends the session in a
-`finally` block, so the derived key never outlives the action it authorized. The contracts,
-scripts and passkey ceremony are all tested; what has not been exercised yet is clicking through
-the pages against the live deployment.
+`finally` block, so the derived key never outlives the action it authorized.
+
+`npm run test:ui` drives the whole product through headless Chrome against the live deployment —
+passkey account creation, funding, bounded approval, issuance, the three spend attempts,
+revocation, and the public verdict:
+
+```
+/console  passkey account created   0x75DB9993…423588
+          card issued               Card •• A55A  $50/day   ERC-8004 id 1949
+/demo     in-policy $20             approved
+          over cap                  declined DailyCapExceeded
+          out-of-scope merchant     declined MerchantNotAllowed
+/console  card state                REVOKED
+/demo     next attempt              declined CardRevoked
+/verify   verdict                   REVOKED — do not transact
+          cross-check               consistent
+```
 
 The demo script is already pinned by `test_theNinetySecondDemo`, so the UI has a contract-level
 specification to build against rather than the reverse.
@@ -528,6 +542,7 @@ specification to build against rather than the reverse.
 | `lib/mera.ts` | Passkey → EOA derivation and prompt-per-transaction sessions |
 | `scripts/mera-check.ts` | Headless proof of the chain, with `--onchain` |
 | `scripts/test-passkey.ts` | End-to-end passkey test via Chrome's virtual authenticator |
+| `scripts/test-ui.ts` | Drives console → demo → verify in a real browser |
 | `TESTING.md` | What is tested, how, and the one manual step |
 
 ---

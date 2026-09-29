@@ -15,7 +15,8 @@
     "start": "next start",
     "mera:check": "node scripts/mera-check.ts",
     "mera:check:onchain": "node scripts/mera-check.ts --onchain",
-    "test:passkey": "node scripts/test-passkey.ts"
+    "test:passkey": "node scripts/test-passkey.ts",
+    "test:ui": "node scripts/test-ui.ts"
   },
   "dependencies": {
     "@category-labs/mera": "^0.2.0",

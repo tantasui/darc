@@ -84,6 +84,23 @@ phase 2 — fund it, then sign in with the same passkey
 *Note if you extend this test:* a click that lands before React hydrates is a silent no-op, which is
 what made the first version time out. `clickUntilResponse` retries until the UI reacts.
 
+## 6b. The whole product in a browser — `npm run test:ui`
+
+Drives `/console` → `/demo` → `/verify` in headless Chrome against the live deployment, using the
+same virtual authenticator for the passkey ceremonies. This is the one that proves the *pages*
+work, not just the contracts beneath them: account creation and pre-funding, test dollars and a
+bounded approval, issuance, an in-policy purchase, both refusals, revocation from the console, and
+the resulting public verdict.
+
+Two traps it already caught, both worth knowing if you extend it:
+
+- **`innerText` reflects CSS.** A heading styled `text-transform: uppercase` comes back as
+  `ISSUE A CARD`, so literal matching silently fails. Match case-insensitively.
+- **A click before React hydrates is a silent no-op**, so clicks retry until the UI reacts.
+
+Each run costs real testnet gas (roughly a dozen transactions) and permanently consumes one agent
+key, which is by design — agent keys are never reusable.
+
 ## 7. Live demo — `npm run demo`
 
 Runs the pitch as real transactions: issue → $20 approved → $200 declined `DailyCapExceeded` →
