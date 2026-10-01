@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20.9"
+    "node": ">=22"
   },
   "scripts": {
     "fund": "node scripts/fund.ts",
@@ -12,7 +12,7 @@
     "demo": "node scripts/demo.ts",
     "dev": "next dev",
     "build": "next build",
-    "start": "next start -p ${PORT:-3000}",
+    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
     "mera:check": "node scripts/mera-check.ts",
     "mera:check:onchain": "node scripts/mera-check.ts --onchain",
     "test:passkey": "node scripts/test-passkey.ts",

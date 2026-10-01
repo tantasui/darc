@@ -13,9 +13,25 @@ the wrong builder — that is the cause of errors like
 | Framework | Next.js |
 | Install | `npm install` |
 | Build | `npm run build` |
-| Start | `npm run start` (honours `$PORT`) |
-| Node | 20.9+ (`.nvmrc` and `engines.node` both declare it) |
-| Output | **Server**, not static export |
+| **Output directory** | **`.next`** |
+| **Start command** | **`npm run start`** |
+| Node | 22+ (`.nvmrc` and `engines.node` declare it) |
+| Type | **Node / web service**, *not* a static site |
+
+### "Build finished but no 'build' directory was produced"
+
+That is a static-site host looking for a publish folder. Next.js does not make one: it writes
+`.next` and expects a Node process to serve it. Set the output directory to `.next` **and** give
+the service a start command. Publishing `.next` as static files will serve broken JSON, not the app.
+
+`npm run start` runs `next start -H 0.0.0.0 -p ${PORT:-3000}` — it binds all interfaces and
+honours whatever `$PORT` the platform injects, which is what container hosts require.
+
+### `npm warn EBADENGINE … @category-labs/mera … required: node >=24`
+
+Advisory, and safe to ignore. Mera runs in the browser, so the build host's Node version does not
+constrain it; builds pass on Node 22. Our own `engines` field states what the app actually needs
+rather than inheriting that requirement.
 
 `typescript` and the `@types/*` packages are listed under `dependencies`, not
 `devDependencies`, precisely so a host that installs with `--omit=dev` can still build.
