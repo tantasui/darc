@@ -20,6 +20,9 @@ import {IReputationRegistry} from "../src/interfaces/IERC8004.sol";
 contract Deploy is Script {
     // Verified live on chain 10143. NOT the addresses in Monad's guide (those are mainnet
     // and have no code here); see README "Whose registries are these?".
+    /// @dev Real AUSD on Monad Testnet (6 decimals). Not ours, and not a mock.
+    address constant AUSD_MONAD_TESTNET = 0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC;
+
     address constant DEFAULT_IDENTITY_REGISTRY = 0x8004A818BFB912233c491871b3d84c89A494BD9e;
     address constant DEFAULT_REPUTATION_REGISTRY = 0x8004B663056A597Dffe9eCcC1965A193B7388713;
 
@@ -36,14 +39,27 @@ contract Deploy is Script {
             "registries are not wired to each other"
         );
 
+        // Prefer the real stablecoin. MockUSD is only a fallback for chains where AUSD is
+        // not deployed (a local anvil run), so the demo settles in a real asset wherever it can.
+        address paymentToken = vm.envOr("PAYMENT_TOKEN", AUSD_MONAD_TESTNET);
+
         vm.startBroadcast();
 
-        MockUSD usd = new MockUSD();
+        if (paymentToken.code.length == 0) {
+            paymentToken = address(new MockUSD());
+            console.log("WARNING: AUSD not found on this chain; deployed MockUSD instead");
+        }
         CardManager cardManager = new CardManager(identityRegistry);
-        SpendGate gate = new SpendGate(address(cardManager), address(usd));
+        SpendGate gate = new SpendGate(address(cardManager), paymentToken);
         SpendRouter router = new SpendRouter(address(gate));
-        MockMerchant merchantA = new MockMerchant(address(router), address(cardManager), reputationRegistry);
-        MockMerchant merchantB = new MockMerchant(address(router), address(cardManager), reputationRegistry);
+        // Three named merchants: two in a typical card's policy, one deliberately outside it,
+        // so an out-of-scope refusal is demonstrable with real counterparties.
+        MockMerchant merchantA =
+            new MockMerchant("Lagos Cloud Hosting", address(router), address(cardManager), reputationRegistry);
+        MockMerchant merchantB =
+            new MockMerchant("Horizon Data API", address(router), address(cardManager), reputationRegistry);
+        MockMerchant merchantC =
+            new MockMerchant("Riverside Subscriptions", address(router), address(cardManager), reputationRegistry);
         ReputationReader reader =
             new ReputationReader(address(cardManager), reputationRegistry, identityRegistry);
 
@@ -52,12 +68,13 @@ contract Deploy is Script {
         console.log("chainId           ", block.chainid);
         console.log("identityRegistry  ", identityRegistry);
         console.log("reputationRegistry", reputationRegistry);
-        console.log("mockUSD           ", address(usd));
+        console.log("paymentToken      ", paymentToken);
         console.log("cardManager       ", address(cardManager));
         console.log("spendGate         ", address(gate));
         console.log("spendRouter       ", address(router));
         console.log("merchantA         ", address(merchantA));
         console.log("merchantB         ", address(merchantB));
+        console.log("merchantC         ", address(merchantC));
         console.log("reputationReader  ", address(reader));
     }
 }

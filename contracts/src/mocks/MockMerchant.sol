@@ -18,6 +18,10 @@ import {DeclineReasons} from "../lib/DeclineReasons.sol";
 ///      ERC-8004's client-feedback model. It is also the merchant who submits and pays gas,
 ///      so the agent never holds funds or gas.
 contract MockMerchant {
+    /// @notice Human-readable merchant identity, so the UI shows a real counterparty rather
+    ///         than an opaque address. Set once at deployment.
+    string public name;
+
     SpendRouter public immutable router;
     CardManager public immutable cardManager;
     IReputationRegistry public immutable reputation;
@@ -32,7 +36,8 @@ contract MockMerchant {
 
     event Charged(bytes32 indexed cardId, bool ok, bytes4 reasonSelector);
 
-    constructor(address router_, address cardManager_, address reputation_) {
+    constructor(string memory name_, address router_, address cardManager_, address reputation_) {
+        name = name_;
         router = SpendRouter(router_);
         cardManager = CardManager(cardManager_);
         reputation = IReputationRegistry(reputation_);

@@ -24,6 +24,23 @@ export const ERC8004 = {
   validationRegistry: "0x8004Cb1BF31DAf7788923b405b754f57acEB4272",
 } as const;
 
+/**
+ * Real AUSD on Monad Testnet — Agora's dollar stablecoin, not a mock we minted. Six
+ * decimals, which is why SpendGate's single-pinned-token design fits it exactly.
+ *
+ * The faucet is a proxy; its implementation exposes `requestFunds(address)`, which sends
+ * 10,000 AUSD with a short cooldown. Neither contract is ours.
+ */
+export const AUSD = {
+  token: "0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC",
+  faucet: "0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C",
+  decimals: 6,
+  symbol: "AUSD",
+} as const;
+
+/** The token every card is denominated in. */
+export const PAYMENT_TOKEN = AUSD.token;
+
 export const RPC_URL = process.env.MONAD_TESTNET_RPC ?? MONAD_TESTNET.rpcUrls.default.http[0];
 
 /**

@@ -52,8 +52,8 @@ abstract contract AgentCardBase is Test {
         cardManager = new CardManager(address(identity));
         gate = new SpendGate(address(cardManager), address(usd));
         router = new SpendRouter(address(gate));
-        merchantA = new MockMerchant(address(router), address(cardManager), address(reputation));
-        merchantB = new MockMerchant(address(router), address(cardManager), address(reputation));
+        merchantA = new MockMerchant("Lagos Cloud Hosting", address(router), address(cardManager), address(reputation));
+        merchantB = new MockMerchant("Horizon Data API", address(router), address(cardManager), address(reputation));
         reader = new ReputationReader(address(cardManager), address(reputation), address(identity));
 
         // Owner is funded and grants a BOUNDED approval to SpendGate.

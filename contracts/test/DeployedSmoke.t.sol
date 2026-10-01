@@ -100,7 +100,9 @@ contract DeployedSmokeTest is Test {
 
     /// @dev The full demo against the real deployment.
     function test_demoFlow_againstDeployedContracts() public onlyDeployed {
-        usd.mint(owner, 1_000e6);
+        // The deployment settles in real AUSD, which has no mint(); on a fork we can simply
+        // write the balance. Nothing here touches the live chain.
+        deal(address(usd), owner, 1_000e6);
         vm.prank(owner);
         usd.approve(address(gate), 500e6);
 
