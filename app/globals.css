@@ -1,0 +1,158 @@
+/*
+ * AgentCard design tokens.
+ *
+ * One palette, one spacing scale, one type scale. Every component reads from here, so a
+ * colour exists in exactly one place. Deliberately not default-framework blue/grey: the
+ * base is a deep ink navy with a single restrained accent, so status colours are the only
+ * saturated things on screen and therefore carry meaning.
+ */
+:root {
+  /* Surfaces, darkest to lightest */
+  --ink-900: #0a0e17;
+  --ink-850: #0d121c;
+  --ink-800: #111823;
+  --ink-700: #161f2d;
+  --ink-600: #1d283a;
+  --line: #222d40;
+  --line-strong: #2d3a51;
+
+  /* Text */
+  --text: #e8ecf4;
+  --text-muted: #94a1b8;
+  --text-dim: #6a768d;
+
+  /* One accent, used only for primary actions and focus */
+  --accent: #4d7cfe;
+  --accent-hover: #5f8aff;
+  --accent-dim: #1e2d55;
+
+  /* Semantic status — distinct hues, not shades of one colour */
+  --ok: #34d399;
+  --ok-dim: #10291f;
+  --declined: #fb7185;
+  --declined-dim: #2c1419;
+  --revoked: #a78bfa;
+  --revoked-dim: #1f1830;
+  --pending: #fbbf24;
+  --pending-dim: #2a1f0a;
+
+  /* Spacing scale */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+
+  /* Type scale */
+  --t-xs: 11.5px;
+  --t-sm: 13px;
+  --t-base: 14.5px;
+  --t-lg: 17px;
+  --t-xl: 22px;
+  --t-2xl: 28px;
+
+  /* Radii + shadows */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-3: 0 14px 40px rgba(0, 0, 0, 0.45);
+
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --rail: 232px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--ink-900);
+  color: var(--text);
+  font: var(--t-base) / 1.55 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--accent-hover);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+button {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+/* A new card is a small moment: reveal it rather than popping it in. */
+@keyframes card-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

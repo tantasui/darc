@@ -1,0 +1,12 @@
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.name {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.nameMuted {
+  color: var(--text-muted);
+}
