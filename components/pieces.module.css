@@ -1,0 +1,228 @@
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--s-3);
+}
+.stat {
+  background: var(--ink-800);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+}
+.statLabel {
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  font-weight: 650;
+  margin-bottom: 6px;
+}
+.statValue {
+  font-size: var(--t-2xl);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.statNote {
+  font-size: var(--t-xs);
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--s-4);
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.rowBetween {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+.btnRow {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.avatarSm {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  font-size: 10.5px;
+  font-weight: 750;
+  color: #fff;
+  flex: none;
+}
+.merchantCell {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.merchantName {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.merchantSells {
+  font-size: var(--t-xs);
+  color: var(--text-dim);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--s-5);
+}
+.cardLink {
+  color: inherit;
+  display: block;
+  transition: transform 160ms ease;
+}
+.cardLink:hover {
+  transform: translateY(-3px);
+  color: inherit;
+}
+
+.transcript {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  max-height: 340px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.line {
+  display: flex;
+  gap: 9px;
+  animation: fade-in 220ms ease;
+}
+.who {
+  flex: none;
+  width: 48px;
+  color: var(--text-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-top: 1px;
+}
+.lineOk {
+  color: var(--ok);
+}
+.lineDeclined {
+  color: var(--declined);
+}
+.lineNote {
+  color: var(--text-muted);
+}
+
+.taskList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.task {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--ink-850);
+  font-size: var(--t-sm);
+}
+.taskGoal {
+  font-weight: 600;
+}
+.taskMeta {
+  font-size: var(--t-xs);
+  color: var(--text-dim);
+}
+
+.field {
+  display: block;
+  margin-bottom: var(--s-4);
+}
+.fieldLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--t-sm);
+  color: var(--text-muted);
+  margin-bottom: 7px;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 9px var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  margin-bottom: 6px;
+  cursor: pointer;
+  font-size: var(--t-sm);
+  background: var(--ink-850);
+}
+.checkOn {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.input {
+  width: 100%;
+  padding: 10px var(--s-3);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--ink-850);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: var(--t-sm);
+}
+
+@media (max-width: 860px) {
+  .grid2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cardGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Merchant tints as classes: the set is fixed, so no computed style is needed. */
+.tint0 { background: #4d7cfe; }
+.tint1 { background: #34d399; }
+.tint2 { background: #a78bfa; }
+.tintNone { background: var(--ink-600); }
+
+.merchantSellsBlock {
+  display: block;
+  font-size: var(--t-xs);
+  color: var(--text-dim);
+}
+.addressLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.monoText {
+  font-family: var(--mono);
+}
+.min0 {
+  min-width: 0;
+}
+
+.formRowWide {
+  display: flex;
+  gap: var(--s-2);
+}

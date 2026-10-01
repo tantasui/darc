@@ -1,22 +1,19 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
+import { OwnerProvider } from "@/lib/owner-context";
+import "./globals.css";
 
-export const metadata = {
-  title: "AgentCard",
-  description: "Passkey-secured, scoped, revocable cards for AI agents on Monad",
+export const metadata: Metadata = {
+  title: "AgentCard — spending cards for AI agents",
+  description:
+    "Issue scoped, revocable, policy-bound payment cards to AI agents. Every attempt, approved or refused, is public on-chain.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body
-        style={{
-          margin: 0,
-          background: "#0b0d10",
-          color: "#e7e9ee",
-          font: "15px/1.55 ui-sans-serif, system-ui, -apple-system, sans-serif",
-        }}
-      >
-        {children}
+      <body>
+        <OwnerProvider>{children}</OwnerProvider>
       </body>
     </html>
   );
