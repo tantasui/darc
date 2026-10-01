@@ -15,6 +15,22 @@ const base = `http://localhost:${APP_PORT}`;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function main() {
+  // A leftover server on this port is worse than no server: `next start` fails to bind, dies
+  // quietly, and the browser then drives a STALE BUILD while every assertion looks mysterious.
+  // One run was lost to exactly that, so refuse to start instead of guessing.
+  try {
+    const probe = await fetch(base, { signal: AbortSignal.timeout(2000) });
+    if (probe.ok || probe.status > 0) {
+      throw new Error(
+        `something is already listening on ${APP_PORT}. Stop it first, or set UI_PORT to a free port — ` +
+          `otherwise this test silently runs against whatever is already there.`,
+      );
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("already listening")) throw err;
+    // Connection refused is the expected, healthy case.
+  }
+
   const app = spawn("npx", ["next", "start", "-p", String(APP_PORT)], { stdio: "ignore" });
   const chrome = spawn(
     "google-chrome",
@@ -96,23 +112,44 @@ async function main() {
   const text = () => ev("document.body.innerText");
   const idle = () => ev("String(![...document.querySelectorAll('button')].some(b => b.disabled))");
 
-  /** Clicks, retrying until the UI reacts: a click before hydration is a silent no-op. */
+  /**
+   * Clicks and waits for the UI to react.
+   *
+   * Two traps this has to handle. A click landing before React hydrates is a silent no-op, so
+   * it has to be retried. But once a click DOES land, the button goes disabled while the work
+   * runs — and treating "disabled" as "not clickable" burns the retries in seconds while the
+   * action is still in flight. So a disabled button means wait, not retry.
+   */
   const click = async (label: string, settled: (t: string) => boolean, secs = 180) => {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const r = await ev(
+    const find = (what: "state") =>
+      ev(
         `(() => { const b = [...document.querySelectorAll('button')].find(b => b.textContent.includes(${JSON.stringify(label)}));` +
-          ` if (!b || b.disabled) return 'unavailable'; b.click(); return 'clicked'; })()`,
+          ` return !b ? 'missing' : b.disabled ? 'disabled' : 'ready'; })()`,
       );
-      if (r === "clicked") {
-        for (let i = 0; i < secs; i++) {
-          await sleep(1000);
-          if (settled(await text())) return;
-        }
+    const doClick = () =>
+      ev(
+        `(() => { const b = [...document.querySelectorAll('button')].find(b => b.textContent.includes(${JSON.stringify(label)}));` +
+          ` if (!b || b.disabled) return 'no'; b.click(); return 'yes'; })()`,
+      );
+
+    let clicked = false;
+    for (let elapsed = 0; elapsed < secs; elapsed++) {
+      const t = await text();
+      if (settled(t)) return t;
+
+      const state = await find("state");
+      if (state === "ready" && !clicked) {
+        clicked = (await doClick()) === "yes";
+      } else if (state === "missing" && clicked) {
+        // The control went away because the step advanced; keep waiting for the result.
+      } else if (state === "ready" && clicked) {
+        // Re-enabled without settling: the action finished without changing what we match on.
+        return t;
       }
-      await sleep(2000);
+      await sleep(1000);
     }
     const snapshot = (await text()).split("\n").filter(Boolean).slice(0, 24).join(" | ");
-    throw new Error(`"${label}" never produced a result.\n  page: ${snapshot}`);
+    throw new Error(`"${label}" never produced a result (clicked=${clicked}).\n  page: ${snapshot}`);
   };
 
   const go = async (path: string, marker: string) => {
