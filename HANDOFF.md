@@ -1,6 +1,6 @@
 # AgentCard — handoff context
 
-**As of 1 October 2026 · deadline 14 October (13 days) · 8 commits · working tree clean**
+**As of 1 October 2026 · deadline 14 October (13 days) · 13 commits**
 
 Hand this to a fresh session. It covers what exists, what is proven, and the one thing that still
 needs fixing.
@@ -32,7 +32,8 @@ deployment.** Nothing below is aspirational.
 | ERC-8004 | Integrated with the **canonical** registries, verified on-chain |
 | Declines on-chain | Working, with the reason readable by `eth_call` |
 | Passkey → EOA → tx | Proven, including the WebAuthn ceremony |
-| `/console` `/demo` `/verify` `/mera` | All four built and driven end to end |
+| `/` `/cards` `/activity` `/agents` `/verify` `/settings` | Built on one design system, driven end to end |
+| Settlement token | Real AUSD, not a mock |
 
 One automated run of `npm run test:ui` produces:
 
@@ -48,75 +49,62 @@ One automated run of `npm run test:ui` produces:
 
 ### Deployed addresses (Monad Testnet, chain 10143)
 
+Regenerate with `npm run write-config`; never hand-copy.
+
 | Contract | Address |
 |---|---|
-| CardManager | `0xA00d6901676EA65D3Fc0920046877eB8505329B0` |
-| SpendGate | `0x0dD6F49781Cca0D309F784209d3f2Dc5Ec1ac26e` |
-| SpendRouter | `0x2d6C43F8D74501af8A386589137980F729a43cA1` |
-| ReputationReader | `0x07885e31E2d1291583d6c4fed220C970e1AE0247` |
-| MockUSD | `0x82acf5f99EA05e5BD6a1886B5cBA63dE1Fc15395` |
-| MockMerchant A / B | `0x10AC2e0abEB38e24dE19Fc5d2e2DcA5D9EEeF14E` / `0xBf7B5E80045Ed9408B02297ccd707b1e61901A1A` |
+| CardManager | `0xBE65B96d591840AaCBe591B327abe92Cddc64D24` |
+| SpendGate | `0xE020378b873d10dB86f3a1FF5c781db58B034794` |
+| SpendRouter | `0xFc5Eb559b062F48D8f5C7d04F01C07568eB43124` |
+| ReputationReader | `0xc86630cB8901ff7038e2Fa3b48C3b2E4d28e159e` |
+| Lagos Cloud Hosting | `0xdaf1f3fdc83e49BD4D50fDA1613c15D1C7552244` |
+| Horizon Data API | `0x51fA5af542179cDe11e517b377f7fc2e443D86e8` |
+| Riverside Subscriptions | `0x0B0DFdc99265ACead416F9872B283EDD0D33b87A` |
+| AUSD (settlement, Agora's) | `0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC` |
+| AUSD faucet (Agora's) | `0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C` |
 | ERC-8004 Identity (not ours) | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | ERC-8004 Reputation (not ours) | `0x8004B663056A597Dffe9eCcC1965A193B7388713` |
 
 ---
 
-## THE OPEN CONCERN — read this first
+## Phase 5 closed the product-polish gap
 
-**The user's words: it does not look like a product people would use. It looks like someone
-learning a new technology.** That judgement is correct, and it is now the main remaining work.
+The previous concern — *it looks like someone learning a new technology, not a product people
+would use* — has been addressed. What changed:
 
-The engineering is sound and defensible. The *presentation* is not. Specifically:
+1. **A design system.** Tokens in `app/globals.css` (one palette, one spacing scale, one type
+   scale) and primitives in `components/ui`. Inline styles went from 57 to 2, and both survivors
+   are parameterised component props, not styling decisions. Status tones and merchant tints are
+   classes, so nothing computes a colour inline.
+2. **A product shell.** Left rail on desktop, bottom bar on phones, account block with sign-out,
+   a wordmark and favicon. Seven screens: Home, Cards, card detail, Activity, Agents, Verify,
+   Account.
+3. **The card looks like a card.** ISO aspect ratio, chip, masked number; revoked cards
+   desaturate and get a struck-through overprint, so state is visible on the face.
+4. **Real money.** Cards settle in **AUSD**, Agora's dollar stablecoin on Monad Testnet
+   (`0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC`), not a token we minted. Six decimals, which is
+   why the single-pinned-token design already fit. The faucet's ABI is unpublished; the working
+   call, `requestFunds(address)`, was recovered from its proxy implementation's bytecode.
+5. **Real merchants.** Lagos Cloud Hosting, Horizon Data API, Riverside Subscriptions — names
+   stored on-chain. Two inside a typical policy, one outside it.
+6. **An agent that decides.** Atlas holds three goals, picks its own amount and merchant, and
+   branches on *why* it was refused (defer over cap, block out-of-scope, halt on revoked), with a
+   transcript narrating the reasoning. Deterministic, no LLM.
+7. **`/mera` is gone** as a product surface; it is now `/settings`, framed as account settings.
 
-### Why it reads as a learning exercise
+### What would still read as unfinished to a critical eye
 
-1. **No design language.** Every page is inline `style={{...}}` objects with ad-hoc hex colours
-   (`#12161c`, `#4f7cff`, `#9aa3b2`) repeated across four files. No tokens, no spacing scale, no
-   typography system, no component library. Panels, buttons and rows are redefined per page.
-2. **It reads like a test harness, because it partly is.** `/mera` is literally a diagnostic
-   checklist with ○ ◍ ● ✕ marks. `/demo` is numbered buttons ("1. Issue a card", "2. Buy $20 at A")
-   that walk a judge through a script rather than letting a user do a task.
-3. **Everything is visibly mock.** `MockUSD`, `MockMerchant A`, `MockMerchant B`, "test dollars".
-   The merchant names are placeholders, so the product has no apparent domain.
-4. **The card is not a card.** "Card •• A55A" is text in a bordered box. The pitch is a *card*
-   metaphor; nothing in the UI earns it.
-5. **No states beyond happy and error.** No empty states, skeletons, optimistic updates, or
-   transitions. Actions block the whole page with "Working…".
-6. **No product shell.** No nav between the four surfaces (only the home page links out), no
-   header, no identity, no name treatment, no favicon, no mobile layout work. The demo is supposed
-   to run on a phone-sized viewport and that has never been checked.
-7. **No agent.** The "agent" is a button. There is no LLM, no MCP, nothing autonomous, so the
-   central claim — *agentic* payments — is asserted rather than shown.
-8. **Single card, single user.** No card list, no history, no spend feed, no multiple cards, no
-   per-merchant breakdown. Real usage implies managing several cards over time.
-
-### What would move it from "demo" to "product"
-
-Highest leverage first, assuming ~13 days:
-
-1. **A design pass with real tokens** (colour, spacing, type scale), extracted into shared
-   components. This single change does the most for perceived quality. Four pages, ~1,500 lines of
-   JSX — mechanical, low-risk work.
-2. **Make the card look like a card.** Gradient, last-4, limit, merchant count, status, issuer
-   mark. It is the product's one memorable image and belongs on the landing page.
-3. **Give the merchants an identity.** Rename to something concrete (a coffee shop and a cloud
-   host, say) so "scoped to merchants" means something. Contract-side this is only constructor
-   args and a redeploy, which is already scripted.
-4. **A real agent loop.** Even a small one: a scripted "shopping assistant" that decides what to
-   buy and gets refused. The honest alternative is to say plainly that Phase 1 has no LLM.
-5. **A product shell**: persistent nav, name, favicon, a real landing page, and a mobile pass.
-6. **Activity feed** on the console: one list of attempts with reasons, instead of a log that only
-   exists during the current session.
-7. **Demote `/mera`.** It is a diagnostic. Move it behind a `/debug` path so the product surface
-   is three pages, not four.
-
-### What NOT to touch
-
-The contracts, the tests, the ERC-8004 integration, the declines-on-chain pattern and the deployed
-addresses are all working and verified. Design work should not require a contract change, with the
-single exception of renaming the demo merchants (item 3), which is a redeploy of the mocks only.
-
----
+- **Custody is still demo-grade.** Agent private keys live in `localStorage`. This is the honest
+  weak point, and it is survivable only because a key is capped, merchant-scoped, expiring and
+  instantly revocable.
+- **One card per browser, effectively.** `lib/cards.ts` remembers cards locally because
+  CardManager keys them by `keccak(owner, agentKey)` and `eth_getLogs` is capped at 100 blocks, so
+  there is no on-chain way to enumerate an owner's cards. Signing in on another device shows
+  nothing.
+- **Activity amounts and timestamps come from the browser.** The on-chain attestations carry only
+  verdict and reason, because the registry stores two tag strings per entry. The UI says so.
+- **No notifications, no multi-user, no real merchant SDK**, and the agent is still a scripted
+  loop rather than a model making calls.
 
 ## Architecture, in brief
 
@@ -173,18 +161,23 @@ single exception of renaming the demo merchants (item 3), which is a redeploy of
   most inotify instances already used). It surfaces confusingly as
   `Can't resolve '../../i18n/normalize-locale-path'`. Use `npm run build && npm run start`, or raise
   the limit: `sudo sysctl fs.inotify.max_user_watches=524288`.
-- **Gas is low.** Funder `0x699335Eb79627308514349ac224c2697CED33073` ≈ 0.66 MON, relayer ≈ 0.42 MON.
-  One full click-through costs roughly a dozen transactions. Faucet the funder, then `npm run fund`.
+- **Gas.** Funder `0x699335Eb79627308514349ac224c2697CED33073`; `npm run fund` spreads it to the
+  owner and relayer, `npm run fund:check` prints the table. One full click-through costs roughly a
+  dozen transactions, so check before demoing.
+- **AUSD, not gas.** The owner also needs AUSD to back a card. `/cards` claims it from Agora's
+  faucet (10,000 AUSD, short cooldown) as part of the one-time setup.
 - Secrets live in `.env` (gitignored): deployer, funder, demo owner, relayer. Testnet only.
-- `innerText` reflects CSS, so a heading styled `text-transform: uppercase` comes back uppercased —
-  this broke the UI test twice. And a click before React hydrates is a silent no-op.
+- `innerText` reflects CSS, so anything styled `text-transform: uppercase` (headings, status
+  badges) comes back uppercased — this broke the UI test twice. A click before React hydrates is a
+  silent no-op. And never pipe a long background run through `tail`: the output buffers until the
+  process ends, which hides all progress.
 
 ## Commands
 
 ```bash
 cd contracts && forge test            # 62 passing
 npm run build && npm run start        # the app (do not use npm run dev here)
-npm run test:ui                       # drives console → demo → verify in headless Chrome
+npm run test:ui                       # drives the whole product in headless Chrome, incl. mobile
 npm run test:passkey                  # the WebAuthn ceremony, virtual authenticator
 npm run mera:check:onchain            # passkey → EOA → real transaction
 npm run demo                          # the whole demo as real transactions, no UI

@@ -568,7 +568,7 @@ npm run demo                            # the whole demo, live on testnet
 
 ```bash
 npm install
-npm run dev            # /verify works with no device; /mera needs a passkey
+npm run dev            # /verify needs no sign-in; /cards and /settings need a passkey
 npm run mera:check      # headless: derivation + signing, no device needed
 npm run mera:check:onchain   # also sends a real transaction (needs FUNDER_PRIVATE_KEY)
 ```

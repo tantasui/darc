@@ -98,7 +98,7 @@ async function main() {
 
   /** Clicks, retrying until the UI reacts: a click before hydration is a silent no-op. */
   const click = async (label: string, settled: (t: string) => boolean, secs = 180) => {
-    for (let attempt = 0; attempt < 6; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       const r = await ev(
         `(() => { const b = [...document.querySelectorAll('button')].find(b => b.textContent.includes(${JSON.stringify(label)}));` +
           ` if (!b || b.disabled) return 'unavailable'; b.click(); return 'clicked'; })()`,
@@ -117,7 +117,7 @@ async function main() {
 
   const go = async (path: string, marker: string) => {
     await send("Page.navigate", { url: base + path });
-    await waitFor(`${path} render`, async () => (await text()).includes(marker), 60);
+    await waitFor(`${path} render`, async () => (await text()).includes(marker), 45);
     await sleep(2500); // let hydration settle and the first reads land
   };
 
@@ -226,7 +226,9 @@ async function main() {
       deviceScaleFactor: 2,
       mobile: true,
     });
-    for (const [path, marker] of [["/", "Overview"], ["/cards", "Cards"], ["/activity", "Activity"]] as const) {
+    // Auth-agnostic markers: a signed-out Home has no "Overview" heading, and waiting for one
+    // is what hung an earlier run.
+    for (const [path, marker] of [["/", "AgentCard"], ["/cards", "Cards"], ["/activity", "Activity"]] as const) {
       await go(path, marker);
       const nav = await ev(
         "(() => { const bars = [...document.querySelectorAll('nav')].map(n => getComputedStyle(n).display); return JSON.stringify(bars); })()",
