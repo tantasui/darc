@@ -1,0 +1,146 @@
+/* The payment-card visual. Fixed aspect ratio, so it reads as a card at any width. */
+.face {
+  container-type: inline-size;
+  position: relative;
+  aspect-ratio: 1.586;
+  width: 100%;
+  max-width: 400px;
+  border-radius: var(--r-xl);
+  padding: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #fff;
+  overflow: hidden;
+  box-shadow: var(--shadow-3);
+  background:
+    radial-gradient(120% 120% at 8% 4%, #3f63d8 0%, transparent 55%),
+    linear-gradient(145deg, #1b2a52 0%, #101728 60%, #0b1020 100%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  animation: card-reveal 420ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  transition: filter 320ms ease, opacity 320ms ease;
+}
+.faceSm {
+  max-width: 320px;
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+}
+
+/* Revoked cards are visibly dead: desaturated, dimmed, struck through. */
+.revoked {
+  filter: grayscale(0.85) brightness(0.68);
+}
+.revoked::after {
+  content: "REVOKED";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: clamp(18px, 7cqw, 30px);
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: rgba(255, 255, 255, 0.82);
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(0, 0, 0, 0.42) 0 14px,
+    rgba(0, 0, 0, 0.26) 14px 28px
+  );
+  transform: rotate(-14deg) scale(1.25);
+}
+.expired {
+  filter: grayscale(0.6) brightness(0.8);
+}
+
+.top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+.issuer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 650;
+  font-size: var(--t-sm);
+  letter-spacing: -0.01em;
+  opacity: 0.95;
+}
+.corner {
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  white-space: nowrap;
+}
+.cornerActive {
+  color: #9af5cf;
+}
+.cornerRevoked {
+  color: #ddd2ff;
+}
+
+.chip {
+  width: 34px;
+  height: 25px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #e3c98a, #b08d3f 60%, #e8d9a8);
+  position: relative;
+  opacity: 0.92;
+}
+.chip::after {
+  content: "";
+  position: absolute;
+  inset: 5px 7px;
+  border-left: 1px solid rgba(0, 0, 0, 0.3);
+  border-right: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+.number {
+  font-family: var(--mono);
+  font-size: clamp(16px, 5.2cqw, 21px);
+  letter-spacing: 0.14em;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dots {
+  opacity: 0.55;
+  letter-spacing: 0.1em;
+}
+
+.bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+.label {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.62;
+  margin-bottom: 2px;
+}
+.value {
+  font-size: var(--t-sm);
+  font-weight: 650;
+}
+.agentName {
+  font-size: var(--t-base);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.persona {
+  font-size: var(--t-xs);
+  opacity: 0.7;
+}
+
+.right {
+  text-align: right;
+}
