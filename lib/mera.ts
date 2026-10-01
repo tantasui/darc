@@ -18,10 +18,30 @@ import {
   isMeraError,
 } from "@category-labs/mera";
 import { toViemAccount } from "@category-labs/mera/viem";
-import type { LocalAccount } from "viem";
+import { toHex, type Hex, type LocalAccount } from "viem";
 
-/** BIP-44 EVM account 0. */
+/** BIP-44 EVM account 0 — the owner's own account. */
 export const DERIVATION_PATH = "m/44'/60'/0'/0/0";
+
+/**
+ * Agent keys live on a separate, HARDENED branch: BIP-44 account 1, hardened all the way to
+ * the leaf.
+ *
+ * WHY DERIVED RATHER THAN RANDOM. Random agent keys cannot be recovered, and because
+ * CardManager keys cards by keccak(owner, agentKey) with no owner index — and public Monad
+ * RPCs cap `eth_getLogs` at 100 blocks — a random key means a card is only findable on the
+ * device that issued it. Deriving the key makes the whole card list recoverable from the
+ * passkey alone, on any device, with nothing but `eth_call`.
+ *
+ * WHY THIS IS STILL SAFE. The branch is hardened, so a leaked agent private key yields
+ * neither its siblings nor anything about its parent: one compromised agent stays one
+ * compromised agent. And the passkey already derives the OWNER key, which can issue and
+ * revoke cards outright — so an attacker holding the PRF output was never limited by agent
+ * keys being random. What changes is the narrative, not the blast radius: agent keys are now
+ * passkey-rooted. They remain independently revocable, which is the property that matters,
+ * because revocation is on-chain policy and has nothing to do with how a key was made.
+ */
+export const agentPath = (index: number) => `m/44'/60'/1'/0'/${index}'`;
 
 const STORAGE_KEY = "agentcard.passkey";
 
@@ -53,11 +73,13 @@ export function clearCredential() {
   }
 }
 
-function derivePrivateKey(prfOutput: Uint8Array): Uint8Array {
+function masterFromPrf(prfOutput: Uint8Array): HDKey {
   if (prfOutput.length !== 32) throw new Error(`PRF output must be 32 bytes, got ${prfOutput.length}`);
-  const hd = HDKey.fromMasterSeed(mnemonicToSeedSync(entropyToMnemonic(prfOutput, wordlist))).derive(
-    DERIVATION_PATH,
-  );
+  return HDKey.fromMasterSeed(mnemonicToSeedSync(entropyToMnemonic(prfOutput, wordlist)));
+}
+
+function privateKeyAt(master: HDKey, path: string): Uint8Array {
+  const hd = master.derive(path);
   if (!hd.privateKey) throw new Error("derivation produced no private key");
   return hd.privateKey;
 }
@@ -72,7 +94,13 @@ function derivePrivateKey(prfOutput: Uint8Array): Uint8Array {
 export async function openOwnerSession(
   mode: "create" | "signIn",
   rpId: string,
-): Promise<{ account: LocalAccount; end: () => void; credentialId: string }> {
+): Promise<{
+  account: LocalAccount;
+  end: () => void;
+  credentialId: string;
+  /** Agent key for a card index. Valid only until `end()`. */
+  deriveAgentKey: (index: number) => Hex;
+}> {
   let prfOutput: Uint8Array;
   let credentialId: string;
 
@@ -96,14 +124,24 @@ export async function openOwnerSession(
     saveCredential({ credentialId: got.credentialId, transports: stored?.transports });
   }
 
-  const privateKey = derivePrivateKey(prfOutput);
+  const master = masterFromPrf(prfOutput);
   // Wipe the PRF output: it is equivalent to the seed phrase.
   prfOutput.fill(0);
 
+  const privateKey = privateKeyAt(master, DERIVATION_PATH);
   const session = createSecp256k1SigningSession({ privateKey });
   privateKey.fill(0);
 
-  return { account: toViemAccount(session), end: () => session.end(), credentialId };
+  return {
+    account: toViemAccount(session),
+    credentialId,
+    deriveAgentKey: (index: number) => toHex(privateKeyAt(master, agentPath(index))),
+    end: () => {
+      session.end();
+      // The master must not outlive the action either, or prompt-per-transaction is a fiction.
+      master.wipePrivateData();
+    },
+  };
 }
 
 /** Turns Mera's error codes into something a user can act on. */

@@ -3,7 +3,7 @@
 /** Cards — every issued card as an actual card, plus the issue flow. */
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
+import { privateKeyToAccount } from "viem/accounts";
 import type { Address } from "viem";
 import { Shell } from "@/components/shell";
 import { Button, Empty, Notice, Panel, ui as u } from "@/components/ui";
@@ -14,14 +14,14 @@ import { MERCHANTS } from "@/config/merchants";
 import { ADDRESSES, ausdFaucetAbi, cardManagerAbi, erc20Abi } from "@/lib/contracts";
 import { merchantRoot } from "@/lib/merkle";
 import { AGENT } from "@/lib/agent";
-import { last4, listCards, saveCard, type StoredCard } from "@/lib/cards";
+import { last4, listCards, nextIndex, saveCard, type StoredCard } from "@/lib/cards";
 import { chain, fmtUsd, loadCardState, loadOwnerFunds, publicClient, type CardState } from "@/lib/chain";
 import { useOwner } from "@/lib/owner-context";
 
 const APPROVAL = 500_000_000n;
 
 export default function CardsPage() {
-  const { owner, busy, error, signIn, runOwnerAction } = useOwner();
+  const { owner, busy, error, recovered, signIn, runOwnerAction } = useOwner();
   const [cards, setCards] = useState<{ stored: StoredCard; state: CardState | null }[]>([]);
   const [issuing, setIssuing] = useState(false);
   const [cap, setCap] = useState(50);
@@ -77,10 +77,11 @@ export default function CardsPage() {
     });
 
   const issue = () =>
-    runOwnerAction("Issuing the card", async (wallet, address) => {
-      // Fresh, random, per card — never derived from the passkey, so it is independently
-      // revocable and disposable.
-      const agentPrivateKey = generatePrivateKey();
+    runOwnerAction("Issuing the card", async (wallet, address, deriveAgentKey) => {
+      // Derived from the passkey on a hardened branch at the next free index, so this card is
+      // recoverable on any device the passkey reaches (see lib/mera.ts for why that is safe).
+      const index = nextIndex(address);
+      const agentPrivateKey = deriveAgentKey(index);
       const agentAddress = privateKeyToAccount(agentPrivateKey).address;
       const validUntil = BigInt(Math.floor(Date.now() / 1000) + 30 * 24 * 3600);
 
@@ -103,6 +104,7 @@ export default function CardsPage() {
 
       saveCard({
         cardId,
+        index,
         owner: address,
         agentAddress,
         agentPrivateKey,
@@ -147,6 +149,13 @@ export default function CardsPage() {
         {error && (
           <Notice tone="error" title="That did not go through">
             {error}
+          </Notice>
+        )}
+
+        {recovered !== undefined && recovered > 0 && cards.length > 0 && (
+          <Notice title={`Recovered ${recovered} card${recovered > 1 ? "s" : ""} from the chain`}>
+            Your cards are found by deriving each agent address from your passkey and reading the
+            card back on-chain, so they follow you to any device. No server holds this list.
           </Notice>
         )}
 

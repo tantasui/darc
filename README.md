@@ -569,6 +569,14 @@ npm run build && npm run test:passkey   # the WebAuthn ceremony, headless
 npm run demo                            # the whole demo, live on testnet
 ```
 
+## Deploying
+
+See [DEPLOY-APP.md](DEPLOY-APP.md). In short: it is a **server-rendered Next.js 16 app**, not a
+static site and not Create React App — a build log mentioning `react-scripts` means the host
+mis-detected it. Two env vars, both throwaway testnet keys: `RELAYER_PRIVATE_KEY` and
+`FUNDER_PRIVATE_KEY`. Serve over HTTPS, and create your demo passkey on the domain you will
+present from, because passkeys are bound to their origin.
+
 ## Running the app
 
 ```bash

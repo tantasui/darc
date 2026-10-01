@@ -31,6 +31,19 @@ contract CrossLanguageConstantsTest is Test {
         );
     }
 
+    /// @dev Mirrors cardIdFor() in lib/cards.ts, which the app uses to DISCOVER an owner's cards
+    ///      without a backend: it derives each agent address from the passkey and reads the card
+    ///      straight back. If this encoding drifted, discovery would silently find nothing.
+    function test_cardId_isPinned() public pure {
+        assertEq(
+            AgentCardTypes.cardIdFor(
+                0x79a4FEef1710163C3B69D10142F686D08194D793, 0x5989E938Fd81a6822bAEA528Ab6Db727D39DE2f2
+            ),
+            0x45c37b070448f20dab095b18442e2f40debaba5b2e44a5d3ee8ccc0eaed56880,
+            "cardId encoding changed -- update cardIdFor() in lib/cards.ts or discovery breaks"
+        );
+    }
+
     /// @dev Mirrors the REASONS table in scripts/demo.ts, which turns a raw selector back
     ///      into a human-readable decline reason.
     function test_declineSelectors_arePinned() public pure {
