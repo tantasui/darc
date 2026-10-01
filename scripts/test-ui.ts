@@ -190,9 +190,11 @@ async function main() {
     console.log("\nCards");
     await go("/cards", "Cards");
     t = await text();
-    if (/Add test dollars and approve/i.test(t)) {
-      await click("Add test dollars and approve", (tx) => /Issue a card/i.test(tx) || /could not/i.test(tx));
-      console.log("  funded + bounded approval ok");
+    // Label must match the UI exactly: it is "Claim AUSD and approve" since the switch to a
+    // real stablecoin, and the "Issue a card" action only appears once setup is done.
+    if (/Claim AUSD and approve/i.test(t)) {
+      await click("Claim AUSD and approve", (tx) => /Issue a card/i.test(tx) || /could not/i.test(tx), 240);
+      console.log("  AUSD claimed + bounded approval ok");
     }
     await click("Issue a card", (tx) => /New card/i.test(tx));
     // The card face renders the mask and the last four as separate elements, so match the mask.

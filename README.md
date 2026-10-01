@@ -393,33 +393,38 @@ Monad Testnet (chain `10143`), deployed +058721-01-09T01:10:33.000Z from commit 
 Regenerate with `npm run write-config` after any redeploy.
 <!-- DEPLOYED:END -->
 
-## Live demo run
+## Live run, through the UI
 
-The 90-second demo, executed on Monad Testnet by `npm run demo` against the deployment above.
-Every row is a real transaction; all 7 contracts are Sourcify-verified (`exact_match`).
-
-| Step | Outcome | Transaction |
-|---|---|---|
-| Owner issues card: $50/day, merchants {A} | agent registered as ERC-8004 identity **#1935** | [`0x…`](https://testnet.monadvision.com/tx/0x28d21122dfa05248518251db1a0cb0b62ff445ea38dc418f8caf18497ef1f623) |
-| Agent buys $20 at merchant A | **approved** | [`0x28d2…623`](https://testnet.monadvision.com/tx/0x28d21122dfa05248518251db1a0cb0b62ff445ea38dc418f8caf18497ef1f623) |
-| Agent tries $200 | **declined** `DailyCapExceeded` | [`0xa65b…f4b`](https://testnet.monadvision.com/tx/0xa65bf8ef173a68159f2e43e77fc964bd9560bc77f7a2ea0b7c0f6203e0eaef4b) |
-| Agent tries merchant B | **declined** `MerchantNotAllowed` | [`0x5a2d…a68`](https://testnet.monadvision.com/tx/0x5a2d8237d12a67f9b971d0db22b8d78ff41644c5e4b58a7a88ff8d1d8b55ba68) |
-| Owner revokes, agent retries | **declined** `CardRevoked` | [`0xec4e…271`](https://testnet.monadvision.com/tx/0xec4e3d77a176bda0a26f61e9f6778c4daec6b63614546cca99ca4e216ad88271) |
-
-Agent `0x448c24e7e9aB4400FeA8f5D829db49f9f91732c5` — verify it yourself at `/verify`. Read back
-from the canonical registry with nothing but `eth_call`:
+`npm run test:ui` drives the product in a real browser against the live deployment — passkey
+ceremonies included, via Chrome's virtual authenticator. Everything else is real: real contracts,
+real AUSD, real gas.
 
 ```
-verdict      REVOKED | approved 1 | declined 3 | agentId 1935
-identity     held by CardManager
-attestations approved  approved            by 0x10AC2e0abE…  (merchant A)
-             declined  DailyCapExceeded    by 0x10AC2e0abE…
-             declined  CardRevoked         by 0x10AC2e0abE…
-             declined  MerchantNotAllowed  by 0xBf7B5E8004…  (merchant B)
-cross-check  consistent
+Home        signed in 0x79a4…D793, dashboard rendered
+Cards       AUSD claimed + bounded approval ok
+            card issued  •• E2F2
+Card detail hosting renewal   paid
+            api top-up        deferred (over limit)
+            data feed         blocked (merchant not allowed)
+            agent narrated          yes
+            reasoned about refusals yes
+            revoked                 yes
+Activity    approved + refused present
+Agents      identity listed
+Verify      Revoked — do not transact with this agent
+            cross-check  Consistent
+Mobile      /, /cards, /activity — bottom nav visible, no horizontal overflow (390x844)
 ```
 
-The agent ended with 0 MON and 0 mUSD: it signed four authorizations and never sent a transaction.
+Confirmed on-chain afterwards with `cast`, not taken from the script's own output:
+
+| Check | Result |
+|---|---|
+| ReputationReader for the agent | `found, agentId 1973, 1 approved, 2 declined, revoked` |
+| AUSD held by Lagos Cloud Hosting | `20000000` — **20 real AUSD moved**, not a mock |
+| Attestation reasons on the canonical registry | `approved`, `DailyCapExceeded`, `MerchantNotAllowed` |
+
+The agent signed four authorisations and never sent a transaction, held no gas and held no AUSD.
 
 ## Contracts
 
