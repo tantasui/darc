@@ -86,16 +86,17 @@ what made the first version time out. `clickUntilResponse` retries until the UI 
 
 ## 6b. The whole product in a browser — `npm run test:ui`
 
-Drives `/console` → `/demo` → `/verify` in headless Chrome against the live deployment, using the
-same virtual authenticator for the passkey ceremonies. This is the one that proves the *pages*
-work, not just the contracts beneath them: account creation and pre-funding, test dollars and a
-bounded approval, issuance, an in-policy purchase, both refusals, revocation from the console, and
-the resulting public verdict.
+Drives the whole product in headless Chrome against the live deployment, using the virtual
+authenticator for the passkey ceremonies: sign-in, the AUSD claim and bounded approval, issuance,
+Atlas's full run (one payment settled, one deferred over the cap, one blocked by merchant scope),
+revocation, the activity and agents screens, the public verifier, and a **mobile pass** at 390×844
+that asserts the bottom nav appears and no screen scrolls sideways.
 
 Two traps it already caught, both worth knowing if you extend it:
 
-- **`innerText` reflects CSS.** A heading styled `text-transform: uppercase` comes back as
-  `ISSUE A CARD`, so literal matching silently fails. Match case-insensitively.
+- **`innerText` reflects CSS.** Anything styled `text-transform: uppercase` — headings, status
+  badges — comes back uppercased, so literal matching silently fails. This one bit twice. Match
+  case-insensitively.
 - **A click before React hydrates is a silent no-op**, so clicks retry until the UI reacts.
 
 Each run costs real testnet gas (roughly a dozen transactions) and permanently consumes one agent

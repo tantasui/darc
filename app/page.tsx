@@ -1,78 +1,180 @@
+"use client";
+
+/** Home — the overview a judge lands on: real numbers first, nothing diagnostic. */
 import Link from "next/link";
-import { ADDRESSES } from "@/config/addresses";
-import { MONAD_TESTNET } from "@/config/chain";
+import { useCallback, useEffect, useState } from "react";
+import { Shell } from "@/components/shell";
+import { Button, DataRow, Empty, Notice, Panel, StatusBadge, Table, ui as u } from "@/components/ui";
+import { AgentCardFace } from "@/components/agent-card";
+import { MerchantCell, Stat, pieces as p } from "@/components/pieces";
+import { PlusIcon } from "@/components/icons";
+import { AGENT } from "@/lib/agent";
+import { last4, listAttempts, listCards, type StoredCard } from "@/lib/cards";
+import { fmtUsd, loadCardState, type CardState } from "@/lib/chain";
+import { useOwner } from "@/lib/owner-context";
 
-const SURFACES = [
-  {
-    href: "/console",
-    title: "Owner console",
-    body: "Sign in with a passkey, issue a card with a daily limit and allowed merchants, revoke it instantly. No seed phrase; the key never reaches a server.",
-    cta: "#4f7cff",
-  },
-  {
-    href: "/demo",
-    title: "Agent demo",
-    body: "Watch an agent spend inside its policy, then get refused for exceeding the cap and for an out-of-scope merchant. It only signs — a relayer pays the gas.",
-  },
-  {
-    href: "/verify",
-    title: "Verifier",
-    body: "Look up any agent and read its record straight from the canonical ERC-8004 registry. No account, no API key, no trust in us.",
-  },
-  {
-    href: "/mera",
-    title: "Passkey check",
-    body: "Proves a passkey derives an account that signs and transacts on Monad Testnet, step by step.",
-  },
-] as const;
+export default function HomePage() {
+  const { owner, signIn, busy, error } = useOwner();
+  const [cards, setCards] = useState<{ stored: StoredCard; state: CardState | null }[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default function Home() {
+  const load = useCallback(async () => {
+    const stored = listCards(owner);
+    const withState = await Promise.all(
+      stored.map(async (s) => ({ stored: s, state: await loadCardState(s.cardId).catch(() => null) })),
+    );
+    setCards(withState);
+    setLoading(false);
+  }, [owner]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const active = cards.filter((c) => c.state && !c.state.revoked && !c.state.expired);
+  const attempts = listAttempts();
+  const today = attempts.filter((a) => a.at > Date.now() - 86_400_000);
+  const approvedToday = today.filter((a) => a.ok).length;
+  const declinedToday = today.filter((a) => !a.ok).length;
+  const recent = attempts.slice(0, 5);
+  const featured = active[0] ?? cards[0];
+
+  if (!owner) {
+    return (
+      <Shell
+        title="Spending cards for AI agents"
+        subtitle="Give an agent a card with a daily limit and a short list of merchants. Every attempt it makes — approved or refused — is written on-chain where anyone can check it."
+      >
+        <div className={p.grid2}>
+          <div className={p.stack}>
+            <Panel>
+              <h2 className={u.h3}>Sign in with a passkey</h2>
+              <p className={u.lead}>
+                No seed phrase and no password. Your account is derived from your passkey on this
+                device, and the key never reaches a server.
+              </p>
+              <div className={p.btnRow}>
+                <Button variant="primary" size="lg" onClick={() => signIn("create")} disabled={!!busy}>
+                  {busy ?? "Create an account"}
+                </Button>
+                <Button size="lg" onClick={() => signIn("signIn")} disabled={!!busy}>
+                  I already have one
+                </Button>
+              </div>
+              {error && (
+                <div className={u.mt4}>
+                  <Notice tone="error" title="We could not read your account">
+                    {error}
+                  </Notice>
+                </div>
+              )}
+            </Panel>
+            <Panel title="Why it is safe to hand over">
+              <DataRow label="Daily limit" value="Spending above it is refused on-chain, not just flagged" />
+              <DataRow label="Merchant list" value="Payments anywhere else are refused" />
+              <DataRow label="Revocable" value="One action kills the card instantly and permanently" />
+              <DataRow label="Public record" value="Refusals are recorded, not only approvals" />
+              <DataRow label="Settles in" value="AUSD, a real dollar stablecoin on Monad Testnet" />
+            </Panel>
+          </div>
+          <Panel className={u.centerPanel}>
+            <AgentCardFace
+              last4="A55A"
+              agentName={AGENT.name}
+              persona={AGENT.persona}
+              dailyCap={50_000_000n}
+              remaining={30_000_000n}
+              revoked={false}
+              merchantCount={2}
+            />
+          </Panel>
+        </div>
+      </Shell>
+    );
+  }
+
   return (
-    <main style={{ maxWidth: 760, margin: "0 auto", padding: "48px 20px 72px" }}>
-      <h1 style={{ fontSize: 27, margin: "0 0 8px" }}>AgentCard</h1>
-      <p style={{ color: "#9aa3b2", margin: "0 0 6px", fontSize: 15.5 }}>
-        Agents should never hold your keys. They hold scoped, revocable, policy-bound cards —
-        and every attempt, approved <em>or refused</em>, is public on-chain.
-      </p>
-      <p style={{ color: "#6b7383", margin: "0 0 30px", fontSize: 13.5 }}>
-        Live on {MONAD_TESTNET.name} · all contracts verified ·{" "}
-        <a
-          href={`${MONAD_TESTNET.blockExplorers.default.url}/address/${ADDRESSES.cardManager}`}
-          target="_blank"
-          rel="noreferrer"
-          style={{ color: "#79a6ff" }}
-        >
-          CardManager
-        </a>
-      </p>
+    <Shell
+      title="Overview"
+      subtitle={`Signed in as ${owner.slice(0, 6)}…${owner.slice(-4)}.`}
+      action={
+        <Link href="/cards">
+          <Button variant="primary">
+            <PlusIcon /> Issue a card
+          </Button>
+        </Link>
+      }
+    >
+      <div className={p.stack}>
+        <div className={p.stats}>
+          <Stat label="Active cards" value={loading ? "—" : active.length} note={`${cards.length} issued in total`} />
+          <Stat label="Approved today" value={approvedToday} note="payments that went through" />
+          <Stat label="Refused today" value={declinedToday} note="blocked by policy" />
+          <Stat
+            label="Remaining today"
+            value={featured?.state ? fmtUsd(featured.state.remaining) : "—"}
+            note={featured ? `of ${featured.state ? fmtUsd(featured.state.dailyCap) : "—"} on ${featured.stored.agentName}` : "no card yet"}
+          />
+        </div>
 
-      <div style={{ display: "grid", gap: 12 }}>
-        {SURFACES.map((s) => (
-          <Link
-            key={s.href}
-            href={s.href}
-            style={{
-              display: "block",
-              padding: 16,
-              borderRadius: 10,
-              border: `1px solid ${"cta" in s ? "#33478f" : "#232a35"}`,
-              background: "#12161c",
-              textDecoration: "none",
-              color: "inherit",
-            }}
-          >
-            <div style={{ fontWeight: 700, fontSize: 15.5, marginBottom: 4 }}>
-              {s.title} <span style={{ color: "#79a6ff" }}>→</span>
-            </div>
-            <div style={{ color: "#9aa3b2", fontSize: 13.5, lineHeight: 1.5 }}>{s.body}</div>
-          </Link>
-        ))}
+        {cards.length === 0 ? (
+          <Panel>
+            <Empty title="No cards yet">
+              <p className={u.narrow}>
+                Issue one to {AGENT.name}, then watch it work through its tasks and get refused when
+                it oversteps.
+              </p>
+              <Link href="/cards">
+                <Button variant="primary">Issue the first card</Button>
+              </Link>
+            </Empty>
+          </Panel>
+        ) : (
+          <div className={p.grid2}>
+            {featured && (
+              <Panel title="Your card" action={<Link href={`/cards/${featured.stored.cardId}`}>Open</Link>}>
+                <Link href={`/cards/${featured.stored.cardId}`} className={p.cardLink}>
+                  <AgentCardFace
+                    last4={last4(featured.stored.agentAddress)}
+                    agentName={featured.stored.agentName}
+                    persona={featured.stored.persona}
+                    dailyCap={featured.state?.dailyCap ?? BigInt(featured.stored.dailyCapUsd) * 1_000_000n}
+                    remaining={featured.state?.remaining}
+                    revoked={featured.state?.revoked ?? false}
+                    expired={featured.state?.expired}
+                    merchantCount={featured.stored.merchants.length}
+                  />
+                </Link>
+              </Panel>
+            )}
+
+            <Panel
+              title="Recent activity"
+              note="The on-chain record of every attempt this agent made."
+              action={<Link href="/activity">View all</Link>}
+              flush
+            >
+              {recent.length === 0 ? (
+                <Empty title="Nothing yet">Run the agent from its card to see attempts here.</Empty>
+              ) : (
+                <Table head={["Merchant", "Amount", "Result"]}>
+                  {recent.map((a) => (
+                    <tr key={a.id}>
+                      <td>
+                        <MerchantCell address={a.merchant} />
+                      </td>
+                      <td className={u.cellMono}>${a.amountUsd}</td>
+                      <td>
+                        {a.ok ? <StatusBadge kind="approved" /> : <StatusBadge kind="declined" label={a.reason ?? "Declined"} />}
+                      </td>
+                    </tr>
+                  ))}
+                </Table>
+              )}
+            </Panel>
+          </div>
+        )}
       </div>
-
-      <p style={{ color: "#6b7383", fontSize: 12.5, marginTop: 28 }}>
-        Testnet demo. Agent keys are held in the browser and the demo routes use throwaway keys —
-        see the README for what is and is not a production custody story.
-      </p>
-    </main>
+    </Shell>
   );
 }

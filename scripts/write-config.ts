@@ -10,7 +10,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { getAddress } from "viem";
-import { ERC8004, MONAD_TESTNET } from "../config/chain.ts";
+import { AUSD, ERC8004, MONAD_TESTNET } from "../config/chain.ts";
 
 const chainId = process.argv.includes("--chain")
   ? process.argv[process.argv.indexOf("--chain") + 1]
@@ -81,6 +81,9 @@ import { ERC8004 } from "./chain.ts";
 
 export const ADDRESSES = {
 ${entries}
+  /** Settlement token: real AUSD on this chain, not a mock we deployed. */
+  paymentToken: "${AUSD.token}",
+  ausdFaucet: "${AUSD.faucet}",
   ...ERC8004,
 } as const;
 
@@ -96,6 +99,7 @@ export const DEPLOYMENT = {
 const explorer = `${MONAD_TESTNET.blockExplorers.default.url}/address`;
 const rows = [
   ...[...deployed.entries()].map(([n, a]) => `| \`${n}\` | [\`${a}\`](${explorer}/${a}) | this deployment |`),
+  `| \`AUSD\` (settlement token) | [\`${AUSD.token}\`](${explorer}/${AUSD.token}) | Agora |`,
   `| \`IdentityRegistry\` | [\`${ERC8004.identityRegistry}\`](${explorer}/${ERC8004.identityRegistry}) | ERC-8004 project |`,
   `| \`ReputationRegistry\` | [\`${ERC8004.reputationRegistry}\`](${explorer}/${ERC8004.reputationRegistry}) | ERC-8004 project |`,
 ].join("\n");

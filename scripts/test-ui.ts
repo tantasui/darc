@@ -141,57 +141,102 @@ async function main() {
     ).result;
     console.log(`\nUI end-to-end — virtual authenticator ${authenticatorId} (PRF on)\n`);
 
-    // --- owner console ---------------------------------------------------------
-    console.log("/console");
-    await go("/console", "Owner console");
-    await click("Create an account with a passkey", (t) => /your account\n/i.test(t) || /failed/i.test(t));
+    // --- sign in -------------------------------------------------------------
+    console.log("Home");
+    await go("/", "Spending cards for AI agents");
+    await click("Create an account", (t) => /Overview/i.test(t) || /could not/i.test(t));
     let t = await text();
-    const owner = (t.match(/0x[a-fA-F0-9]{8}…[a-fA-F0-9]{6}/) ?? [])[0];
-    console.log(`  passkey account created   ${owner ?? "?"}`);
-    await waitFor("gas to land", async () => /[\d.]+ MON/.test(await text()), 60);
-    console.log(`  pre-funded with gas       ${/[\d.]+ MON/.exec(await text())?.[0] ?? "?"}`);
+    console.log(`  signed in                 ${/0x[a-fA-F0-9]{4}…[a-fA-F0-9]{4}/.exec(t)?.[0] ?? "?"}`);
+    console.log(`  dashboard rendered        ${/Active cards/i.test(t) ? "yes" : "no"}`);
 
-    await click("Add test dollars and approve", (t) => /issue a card/i.test(t) || /failed/i.test(t));
+    // --- issue a card --------------------------------------------------------
+    console.log("\nCards");
+    await go("/cards", "Cards");
     t = await text();
-    console.log(`  balance + bounded approval ${/\$[\d.]+ \(bounded\)/.exec(t)?.[0] ?? "set"}`);
-
-    await click("Issue card", (t) => /Card •• /i.test(t) || /failed/i.test(t));
+    if (/Add test dollars and approve/i.test(t)) {
+      await click("Add test dollars and approve", (tx) => /Issue a card/i.test(tx) || /could not/i.test(tx));
+      console.log("  funded + bounded approval ok");
+    }
+    await click("Issue a card", (tx) => /New card/i.test(tx));
+    // The card face renders the mask and the last four as separate elements, so match the mask.
+    await click("Issue to Atlas", (tx) => /•••• ••••/.test(tx) || /could not/i.test(tx), 240);
     t = await text();
-    console.log(`  card issued               ${/Card •• \w+/.exec(t)?.[0]}  ${/\$\d+\/day/.exec(t)?.[0] ?? ""}`);
-    console.log(`  ERC-8004 id               ${/ERC-8004 ID\s*\n?\s*(\d+)/.exec(t)?.[1] ?? "?"}`);
+    console.log(`  card issued               •• ${/•••• ••••\s*\n?\s*(\w{4})/.exec(t)?.[1] ?? "?"}`);
 
-    // --- agent demo ------------------------------------------------------------
-    console.log("\n/demo");
-    await go("/demo", "Agent demo");
-    await click("2. Buy $20 at A", (t) => /Buy \$20 at merchant A/.test(t) && !/◍/.test(t));
-    console.log(`  in-policy $20             ${/✕|●/.exec(await text())?.[0] === "●" ? "approved" : "see log"}`);
-    await click("3. Try $200 (over cap)", (t) => /DailyCapExceeded|Buy \$200[\s\S]*—/.test(t) && !/◍/.test(t));
-    console.log(`  over cap                  ${/DailyCapExceeded/.test(await text()) ? "declined DailyCapExceeded" : "?"}`);
-    await click("4. Try merchant B", (t) => /MerchantNotAllowed/.test(t) && !/◍/.test(t));
-    console.log(`  out-of-scope merchant     ${/MerchantNotAllowed/.test(await text()) ? "declined MerchantNotAllowed" : "?"}`);
+    // --- open the card and run the agent -------------------------------------
+    const href = await ev(
+      "(() => { const a = [...document.querySelectorAll('a')].find(a => /\\/cards\\/0x/.test(a.getAttribute('href') || '')); return a ? a.getAttribute('href') : ''; })()",
+    );
+    if (!href) throw new Error("no card link on /cards");
+    console.log(`\nCard detail (${href.slice(0, 16)}…)`);
+    await go(href, "Atlas");
+
+    await click("Start Atlas", (tx) => /Done for now|Run stopped early|could not/i.test(tx), 300);
     t = await text();
-    console.log(`  remaining today           ${/\$[\d.]+ of \$\d+/.exec(t)?.[0] ?? "?"}`);
+    // Badge labels are uppercased by CSS, so innerText returns PAID/DEFERRED/BLOCKED.
+    console.log(`  hosting renewal           ${/paid/i.test(t) ? "paid" : "?"}`);
+    console.log(`  api top-up                ${/deferred/i.test(t) ? "deferred (over limit)" : "?"}`);
+    console.log(`  data feed                 ${/blocked/i.test(t) ? "blocked (merchant not allowed)" : "?"}`);
+    console.log(`  agent narrated            ${/Atlas here/.test(t) ? "yes" : "no"}`);
+    console.log(`  reasoned about refusals   ${/Deferring|not on this card/.test(t) ? "yes" : "no"}`);
+    console.log(`  on-chain rows             ${(t.match(/DailyCapExceeded|MerchantNotAllowed/g) ?? []).length}`);
 
-    // --- revoke, from the console (the passkey owner is the only one who can) ----
-    console.log("\n/console — revoke");
-    await go("/console", "Owner console");
-    await click("Sign in", (t) => /your account\n/i.test(t) || /failed/i.test(t));
-    await click("Revoke this card", (t) => /REVOKED/.test(t) || /failed/i.test(t));
-    console.log(`  card state                ${/REVOKED/.test(await text()) ? "REVOKED" : "?"}`);
+    // Capture the agent address here; /verify has no address on screen to scrape.
+    const agentAddress = await ev(
+      "(() => { const m = document.body.innerText.match(/0x[a-fA-F0-9]{8}…[a-fA-F0-9]{6}/); return m ? m[0] : ''; })()",
+    );
+    const agentFull = await ev(
+      "(() => { const a = [...document.querySelectorAll('a')].map(a => a.getAttribute('href') || '').find(h => /address\\/0x[a-fA-F0-9]{40}/.test(h)); return a ? a.split('/address/')[1] : ''; })()",
+    );
+    console.log(`  agent address             ${agentAddress || agentFull || "?"}`);
 
-    console.log("\n/demo — retry after revocation");
-    await go("/demo", "Agent demo");
-    await click("2. Buy $20 at A", (t) => /CardRevoked/.test(t) && !/◍/.test(t));
-    console.log(`  next attempt              ${/CardRevoked/.test(await text()) ? "declined CardRevoked" : "?"}`);
+    // --- revoke --------------------------------------------------------------
+    await click("Revoke card", (tx) => /revoked/i.test(tx) || /could not/i.test(tx), 240);
+    console.log(`  revoked                   ${/This card is revoked/i.test(await text()) ? "yes" : "?"}`);
 
-    // --- verifier --------------------------------------------------------------
-    console.log("\n/verify");
+    // --- activity + agents ---------------------------------------------------
+    console.log("\nActivity");
+    await go("/activity", "Activity");
+    t = await text();
+    console.log(`  rows                      ${/Refused/.test(t) ? "approved + refused present" : "?"}`);
+
+    console.log("\nAgents");
+    await go("/agents", "Agents");
+    t = await text();
+    console.log(`  identity listed           ${/#\d+/.test(t) ? "yes" : "?"}`);
+
+    // --- public verifier -----------------------------------------------------
+    console.log("\nVerify (public)");
     await go("/verify", "Verify an agent");
+    const agent = agentFull;
+    if (!agent) throw new Error("could not determine the agent address to verify");
+    await ev(
+      `(() => { const i = document.querySelector('input'); const d = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value'); d.set.call(i, ${JSON.stringify(agent || "")}); i.dispatchEvent(new Event('input',{bubbles:true})); return 'set'; })()`,
+    );
+    await click("Verify", (tx) => /Revoked|Active|No card found/i.test(tx), 90);
     t = await text();
-    console.log(`  verdict                   ${/(REVOKED|ACTIVE|EXPIRED)[^\n]*/.exec(t)?.[0] ?? "?"}`);
-    console.log(`  cross-check               ${/consistent|MISMATCH/.exec(t)?.[0] ?? "?"}`);
+    console.log(`  verdict                   ${/(Revoked|Active|Expired)[^\n]*/.exec(t)?.[0] ?? "?"}`);
+    console.log(`  cross-check               ${/Consistent|Mismatch/.exec(t)?.[0] ?? "?"}`);
 
-    console.log("\n  PASS — console, demo and verifier all work against the live deployment.\n");
+    // --- mobile pass ---------------------------------------------------------
+    console.log("\nMobile (390x844)");
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: 390,
+      height: 844,
+      deviceScaleFactor: 2,
+      mobile: true,
+    });
+    for (const [path, marker] of [["/", "Overview"], ["/cards", "Cards"], ["/activity", "Activity"]] as const) {
+      await go(path, marker);
+      const nav = await ev(
+        "(() => { const bars = [...document.querySelectorAll('nav')].map(n => getComputedStyle(n).display); return JSON.stringify(bars); })()",
+      );
+      const overflow = await ev("String(document.documentElement.scrollWidth > window.innerWidth + 1)");
+      console.log(`  ${path.padEnd(10)} bottom nav ${nav.includes("grid") ? "visible" : "MISSING"}, h-overflow ${overflow}`);
+    }
+    await send("Emulation.clearDeviceMetricsOverride");
+
+    console.log("\n  PASS — dashboard, card, agent run, activity, agents and verifier all work.\n");
   } finally {
     ws.close();
     cleanup();

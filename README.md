@@ -375,17 +375,18 @@ again.
 ## Deployed addresses
 
 <!-- DEPLOYED:START -->
-Monad Testnet (chain `10143`), deployed +058707-07-04T23:56:16.000Z from commit `4c91e57385ae63d7977145fd64e7538eb8a88a91`.
+Monad Testnet (chain `10143`), deployed +058721-01-09T01:10:33.000Z from commit `bca377af1776c9543b97fc3010c06e77cf6df239`.
 
 | Contract | Address | Deployer |
 |---|---|---|
-| `MockUSD` | [`0x82acf5f99EA05e5BD6a1886B5cBA63dE1Fc15395`](https://testnet.monadvision.com/address/0x82acf5f99EA05e5BD6a1886B5cBA63dE1Fc15395) | this deployment |
-| `CardManager` | [`0xA00d6901676EA65D3Fc0920046877eB8505329B0`](https://testnet.monadvision.com/address/0xA00d6901676EA65D3Fc0920046877eB8505329B0) | this deployment |
-| `SpendGate` | [`0x0dD6F49781Cca0D309F784209d3f2Dc5Ec1ac26e`](https://testnet.monadvision.com/address/0x0dD6F49781Cca0D309F784209d3f2Dc5Ec1ac26e) | this deployment |
-| `SpendRouter` | [`0x2d6C43F8D74501af8A386589137980F729a43cA1`](https://testnet.monadvision.com/address/0x2d6C43F8D74501af8A386589137980F729a43cA1) | this deployment |
-| `MockMerchantA` | [`0x10AC2e0abEB38e24dE19Fc5d2e2DcA5D9EEeF14E`](https://testnet.monadvision.com/address/0x10AC2e0abEB38e24dE19Fc5d2e2DcA5D9EEeF14E) | this deployment |
-| `MockMerchantB` | [`0xBf7B5E80045Ed9408B02297ccd707b1e61901A1A`](https://testnet.monadvision.com/address/0xBf7B5E80045Ed9408B02297ccd707b1e61901A1A) | this deployment |
-| `ReputationReader` | [`0x07885e31E2d1291583d6c4fed220C970e1AE0247`](https://testnet.monadvision.com/address/0x07885e31E2d1291583d6c4fed220C970e1AE0247) | this deployment |
+| `CardManager` | [`0xBE65B96d591840AaCBe591B327abe92Cddc64D24`](https://testnet.monadvision.com/address/0xBE65B96d591840AaCBe591B327abe92Cddc64D24) | this deployment |
+| `SpendGate` | [`0xE020378b873d10dB86f3a1FF5c781db58B034794`](https://testnet.monadvision.com/address/0xE020378b873d10dB86f3a1FF5c781db58B034794) | this deployment |
+| `SpendRouter` | [`0xFc5Eb559b062F48D8f5C7d04F01C07568eB43124`](https://testnet.monadvision.com/address/0xFc5Eb559b062F48D8f5C7d04F01C07568eB43124) | this deployment |
+| `MockMerchantA` | [`0xdaf1f3fdc83e49BD4D50fDA1613c15D1C7552244`](https://testnet.monadvision.com/address/0xdaf1f3fdc83e49BD4D50fDA1613c15D1C7552244) | this deployment |
+| `MockMerchantB` | [`0x51fA5af542179cDe11e517b377f7fc2e443D86e8`](https://testnet.monadvision.com/address/0x51fA5af542179cDe11e517b377f7fc2e443D86e8) | this deployment |
+| `MockMerchantC` | [`0x0B0DFdc99265ACead416F9872B283EDD0D33b87A`](https://testnet.monadvision.com/address/0x0B0DFdc99265ACead416F9872B283EDD0D33b87A) | this deployment |
+| `ReputationReader` | [`0xc86630cB8901ff7038e2Fa3b48C3b2E4d28e159e`](https://testnet.monadvision.com/address/0xc86630cB8901ff7038e2Fa3b48C3b2E4d28e159e) | this deployment |
+| `AUSD` (settlement token) | [`0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC`](https://testnet.monadvision.com/address/0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC) | Agora |
 | `IdentityRegistry` | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://testnet.monadvision.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) | ERC-8004 project |
 | `ReputationRegistry` | [`0x8004B663056A597Dffe9eCcC1965A193B7388713`](https://testnet.monadvision.com/address/0x8004B663056A597Dffe9eCcC1965A193B7388713) | ERC-8004 project |
 
@@ -488,37 +489,42 @@ passkey reproduces the same address and sends a confirmed transaction. The only 
 automation cannot settle is whether a *particular real provider* supports PRF — see
 [TESTING.md](TESTING.md) layer 9.
 
-**Verifier page built:** `/verify` resolves any agent address to a trust verdict, the card policy,
-its ERC-8004 identity, the merchant-written attestations with refusal reasons, and a cross-check
-between our aggregate and the raw registry. Pure `eth_call` — no indexer or archive node.
+**A product, not a test harness.** Seven screens inside one shell — a left rail on desktop, a
+bottom bar on phones — all built from one design system (tokens in `app/globals.css`, primitives
+in `components/ui`), with no ad-hoc inline styling left in any screen.
 
-**All four surfaces built and driven end-to-end in a real browser:**
-
-| Route | What it does |
+| Route | What it is |
 |---|---|
-| `/console` | Passkey sign-in, issue a card (limit + merchants), card visual, instant revoke |
-| `/demo` | The agent: in-policy buy, over-cap refusal, out-of-scope refusal |
-| `/verify` | Any agent address → trust verdict from the canonical registry |
-| `/mera` | The passkey → EOA → transaction check, step by step |
+| `/` | Dashboard: active cards, today's approvals and refusals, recent activity |
+| `/cards` | Every card as an actual card; issue one with a limit and a merchant list |
+| `/cards/[id]` | The card, its policy, and **Atlas working through its goals** beside it |
+| `/activity` | The on-chain record across all cards, filterable by result and merchant |
+| `/agents` | ERC-8004 identities and their standing |
+| `/verify` | Public, sign-in free — the record anyone can query |
+| `/settings` | Account and passkey, framed as settings rather than a diagnostic |
 
-Every owner action in `/console` runs its own passkey ceremony and ends the session in a
+Every owner action runs its own passkey ceremony through one helper and ends the session in a
 `finally` block, so the derived key never outlives the action it authorized.
 
-`npm run test:ui` drives the whole product through headless Chrome against the live deployment —
-passkey account creation, funding, bounded approval, issuance, the three spend attempts,
-revocation, and the public verdict:
+**It settles in real money.** Cards are denominated in **AUSD**, Agora's dollar stablecoin, live
+on Monad Testnet at `0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC` — not a token we minted. Six
+decimals, which is exactly why SpendGate pins a single token. The owner claims from Agora's
+public faucet; that faucet's ABI is unpublished, so `requestFunds(address)` was recovered from its
+proxy implementation's bytecode and confirmed with a live claim.
 
-```
-/console  passkey account created   0x75DB9993…423588
-          card issued               Card •• A55A  $50/day   ERC-8004 id 1949
-/demo     in-policy $20             approved
-          over cap                  declined DailyCapExceeded
-          out-of-scope merchant     declined MerchantNotAllowed
-/console  card state                REVOKED
-/demo     next attempt              declined CardRevoked
-/verify   verdict                   REVOKED — do not transact
-          cross-check               consistent
-```
+**The merchants are real counterparties.** Lagos Cloud Hosting, Horizon Data API and Riverside
+Subscriptions — names stored on-chain in each merchant contract, and the sort of thing an agent
+actually buys. Two sit inside a typical card's policy and one deliberately outside it, so an
+out-of-scope refusal happens with a named merchant rather than "Merchant B".
+
+**The agent decides.** Atlas, a procurement assistant, holds three goals and picks its own amount
+and merchant for each. It reacts to *why* it was refused: over the cap it records the shortfall and
+defers that goal, out of scope it marks the goal blocked and does not retry, revoked it stops
+entirely. The transcript narrates that reasoning, so the behaviour is legible rather than implied.
+Deterministic and LLM-free, so it is safe to run live.
+
+`npm run test:ui` drives all of it in headless Chrome against the live deployment, including a
+mobile pass at 390×844.
 
 The demo script is already pinned by `test_theNinetySecondDemo`, so the UI has a contract-level
 specification to build against rather than the reverse.

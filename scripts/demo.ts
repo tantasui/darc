@@ -34,10 +34,11 @@ const chain = defineChain(MONAD_TESTNET);
 const explorer = MONAD_TESTNET.blockExplorers.default.url;
 
 const usdAbi = parseAbi([
-  "function mint(address to, uint256 amount)",
   "function approve(address spender, uint256 amount) returns (bool)",
   "function balanceOf(address) view returns (uint256)",
 ]);
+/** AUSD is real, so there is no mint — claim from Agora's public testnet faucet instead. */
+const faucetAbi = parseAbi(["function requestFunds(address recipient)"]);
 const cardManagerAbi = parseAbi([
   "function issueCard(address agentKey, uint256 dailyCap, bytes32 merchantRoot, uint64 validUntil, string agentURI) returns (bytes32, uint256)",
   "function revoke(bytes32 cardId)",
@@ -108,13 +109,26 @@ async function main() {
   }
 
   // --- setup: fund the owner with mUSD and grant a BOUNDED approval -------------
-  console.log("0. Funding owner with mUSD and approving SpendGate (bounded, not infinite)");
+  console.log("0. Claiming AUSD and approving SpendGate (bounded, not infinite)");
+  const held = await publicClient.readContract({
+    address: ADDRESSES.paymentToken,
+    abi: usdAbi,
+    functionName: "balanceOf",
+    args: [owner.address],
+  });
+  if (held < 100_000_000n) {
+    await wait(
+      await ownerWallet.writeContract({
+        address: ADDRESSES.ausdFaucet,
+        abi: faucetAbi,
+        functionName: "requestFunds",
+        args: [owner.address],
+      }),
+      "faucet  ",
+    );
+  }
   await wait(
-    await ownerWallet.writeContract({ address: ADDRESSES.mockUSD, abi: usdAbi, functionName: "mint", args: [owner.address, 1_000_000_000n] }),
-    "mint    ",
-  );
-  await wait(
-    await ownerWallet.writeContract({ address: ADDRESSES.mockUSD, abi: usdAbi, functionName: "approve", args: [ADDRESSES.spendGate, 500_000_000n] }),
+    await ownerWallet.writeContract({ address: ADDRESSES.paymentToken, abi: usdAbi, functionName: "approve", args: [ADDRESSES.spendGate, 500_000_000n] }),
     "approve ",
   );
 
@@ -144,7 +158,7 @@ async function main() {
     const auth = {
       cardId,
       merchant,
-      token: ADDRESSES.mockUSD,
+      token: ADDRESSES.paymentToken,
       amount,
       nonce,
       deadline: BigInt(Math.floor(Date.now() / 1000) + 300),
@@ -201,7 +215,7 @@ async function main() {
     address: ADDRESSES.reputationReader, abi: readerAbi, functionName: "reportForAgentKey", args: [agent.address],
   });
   console.log(`\nFinal: approved ${final.approvedCount}  declined ${final.declinedCount}  revoked ${final.revoked}`);
-  console.log(`Agent balances — MON ${await publicClient.getBalance({ address: agent.address })}, mUSD ${await publicClient.readContract({ address: ADDRESSES.mockUSD, abi: usdAbi, functionName: "balanceOf", args: [agent.address] })}\n`);
+  console.log(`Agent balances — MON ${await publicClient.getBalance({ address: agent.address })}, AUSD ${await publicClient.readContract({ address: ADDRESSES.paymentToken, abi: usdAbi, functionName: "balanceOf", args: [agent.address] })}\n`);
 }
 
 main().catch((err) => {

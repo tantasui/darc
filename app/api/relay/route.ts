@@ -17,6 +17,8 @@ type Body = {
     policyVersion: string | number;
   };
   signature?: Hex;
+  /** Merkle proof that the merchant is in the card's allow-list. Empty for a single-merchant card. */
+  proof?: Hex[];
 };
 
 /**
@@ -28,13 +30,15 @@ type Body = {
  */
 export async function POST(request: Request) {
   try {
-    const { auth, signature } = (await request.json()) as Body;
+    const { auth, signature, proof } = (await request.json()) as Body;
     if (!auth || !signature) return Response.json({ error: "auth and signature are required" }, { status: 400 });
     if (!isAddress(auth.merchant)) return Response.json({ error: "invalid merchant" }, { status: 400 });
 
     // Only the demo merchants are accepted: this endpoint is unauthenticated, so it must not
     // become a way to route the owner's funds to an arbitrary address.
-    const allowed = [ADDRESSES.mockMerchantA, ADDRESSES.mockMerchantB].map((a) => a.toLowerCase());
+    const allowed = [ADDRESSES.mockMerchantA, ADDRESSES.mockMerchantB, ADDRESSES.mockMerchantC].map((a) =>
+      a.toLowerCase(),
+    );
     if (!allowed.includes(auth.merchant.toLowerCase())) {
       return Response.json({ error: "merchant not part of the demo" }, { status: 400 });
     }
@@ -54,7 +58,7 @@ export async function POST(request: Request) {
       address: auth.merchant,
       abi: merchantAbi,
       functionName: "charge",
-      args: [typed, signature, []],
+      args: [typed, signature, proof ?? []],
     });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
@@ -65,7 +69,7 @@ export async function POST(request: Request) {
       address: auth.merchant,
       abi: merchantAbi,
       functionName: "charge",
-      args: [typed, signature, []],
+      args: [typed, signature, proof ?? []],
       blockNumber: receipt.blockNumber - 1n,
     });
     const [ok, selector] = result as [boolean, Hex];

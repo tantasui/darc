@@ -38,12 +38,20 @@ export const merchantAbi = parseAbi([
   "function charge((bytes32 cardId,address merchant,address token,uint256 amount,uint256 nonce,uint256 deadline,uint64 policyVersion) auth, bytes agentSig, bytes32[] merchantProof) returns (bool, bytes4)",
 ]);
 
-export const mockUsdAbi = parseAbi([
-  "function faucet()",
+export const erc20Abi = parseAbi([
   "function approve(address spender, uint256 amount) returns (bool)",
   "function balanceOf(address) view returns (uint256)",
   "function allowance(address owner, address spender) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+  "function symbol() view returns (string)",
 ]);
+
+/**
+ * The AUSD testnet faucet. Its ABI is not published, so this signature was recovered from
+ * the proxy's implementation bytecode and confirmed by a live claim: it sends 10,000 AUSD to
+ * the given address, with a short cooldown.
+ */
+export const ausdFaucetAbi = parseAbi(["function requestFunds(address recipient)"]);
 
 export const spendGateAbi = parseAbi([
   "function remainingToday(bytes32 cardId) view returns (uint256)",
