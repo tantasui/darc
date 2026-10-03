@@ -8,8 +8,8 @@ the agent under ERC-8004, and writes a spending policy on-chain under the user's
 spend is verified against the whole chain, and **every attempt — approved or refused — becomes
 public on-chain data.**
 
-> **Status: Phase 1, contracts complete.** 58 tests green, including 6 that run against the real
-> ERC-8004 registries on Monad Testnet. Not yet deployed; app layer not yet built. See
+> **Status: live on Monad Testnet.** All 7 contracts deployed and Sourcify-verified, 64 tests
+> green, and the app is built: passkey sign-in, card issuance, and on-chain spend history. See
 > [Status](#status).
 
 ---
