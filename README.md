@@ -8,7 +8,7 @@ the agent under ERC-8004, and writes a spending policy on-chain under the user's
 spend is verified against the whole chain, and **every attempt — approved or refused — becomes
 public on-chain data.**
 
-> **Status: live on Monad Testnet.** All 7 contracts deployed and Sourcify-verified, 64 tests
+> **Status: live on Monad Testnet.** All 7 contracts deployed and Sourcify-verified, 65 tests
 > green, and the app is built: passkey sign-in, card issuance, and on-chain spend history. See
 > [Status](#status).
 
@@ -447,7 +447,7 @@ counts come from tag filtering (`"payment"` / `"approved"` \| `"declined"`).
 
 ```bash
 cd contracts
-forge test            # 58 tests, including 6 forked against live Monad Testnet
+forge test            # 65 tests, including 6 forked against live Monad Testnet
 forge test --no-match-path 'test/MonadForkIntegration.t.sol'   # offline only
 ```
 
@@ -461,7 +461,7 @@ refuses to fork chain 10143.
 | `ReputationTrail.t.sol` (12) | Declines on-chain, no state left behind, merchant attestation, reader reports |
 | `DemoScript.t.sol` (3) | The 90-second demo as an executable test, plus fuzzed cap and signature invariants |
 | `MonadForkIntegration.t.sol` (6) | The whole flow against the **real** registries on chain 10143 |
-| `CrossLanguageConstants.t.sol` (3) | Pins the EIP-712 typehash, Merkle leaf encoding and decline selectors shared with TypeScript |
+| `CrossLanguageConstants.t.sol` (4) | Pins the EIP-712 typehash, Merkle leaf encoding, card ID derivation and decline selectors shared with TypeScript |
 | `DeployedSmoke.t.sol` (2) | Post-deploy: the demo against the **deployed** addresses (skips until they exist) |
 
 Unit tests run against faithful local replicas of the registries (reproducing the self-feedback
@@ -479,7 +479,7 @@ mocks replicate the real registry rather than approximating it.
 
 ## Status
 
-**Done:** contracts, 64 passing tests (including the post-deploy smoke test), verified ERC-8004 integration against live testnet
+**Done:** contracts, 65 passing tests (including the post-deploy smoke test), verified ERC-8004 integration against live testnet
 registries, and the full deploy toolchain — deploy script with registry pre-flight checks, address
 generator, funder/top-up, live demo runner, and a post-deploy smoke test.
 
